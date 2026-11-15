@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Node
+node_modules/
+dist/
+.cache/
+*.local
+
+# Environment — keep the example template, ignore every real env file
+.env
+.env.*
+!.env.example
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Alembic
+backend/alembic/versions/*.pyc
+
+# Reports
+*.pdf
+uploads/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3

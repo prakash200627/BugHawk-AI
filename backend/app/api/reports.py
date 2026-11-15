@@ -1,0 +1,127 @@
+"""
+BugHawk AI 2.0 — Reports API
+"""
+import json
+from typing import List
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
+
+from app.database.session import get_db
+from app.models import SecurityReport, Project, SecurityFinding, Asset, AuthorizedScope, ReportFormat
+from app.schemas import ReportGenerateRequest, ReportResponse
+from app.config import settings
+
+router = APIRouter()
+
+
+def _build_report_data(project: Project, db: Session, include_evidence: bool = True) -> dict:
+    """Build the report data structure."""
+    findings = db.query(SecurityFinding).filter(SecurityFinding.project_id == project.id).all()
+    assets = db.query(Asset).filter(Asset.project_id == project.id).all()
+    scopes = db.query(AuthorizedScope).filter(
+        AuthorizedScope.project_id == project.id,
+        AuthorizedScope.is_active == True,
+    ).all()
+
+    sev_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    for f in findings:
+        key = f.effective_severity.value if f.effective_severity else "info"
+        sev_counts[key] = sev_counts.get(key, 0) + 1
+
+    report_findings = []
+    for f in findings:
+        fd = {
+            "id": f.id,
+            "title": f.title,
+            "severity": f.effective_severity.value if f.effective_severity else "unknown",
+            "vulnerability_type": f.vulnerability_type,
+            "cve_id": f.cve_id,
+            "cwe_id": f.cwe_id,
+            "endpoint": f.endpoint,
+            "description": f.description,
+            "confidence": f.confidence.value if f.confidence else "unverified",
+            "validation_status": f.validation_status.value if f.validation_status else "pending",
+            "source_tool": f.source_tool,
+            "remediation": f.remediation,
+            "is_demo": f.is_demo,
+        }
+        if include_evidence:
+            fd["evidence"] = f.evidence
+        report_findings.append(fd)
+
+    return {
+        "report_metadata": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "platform": "BugHawk AI 2.0",
+            "version": settings.app_version,
+            "demo_mode": settings.is_demo,
+        },
+        "executive_summary": {
+            "project_name": project.name,
+            "assessment_period": project.created_at.isoformat(),
+            "total_assets": len(assets),
+            "total_findings": len(findings),
+            "severity_distribution": sev_counts,
+            "methodology": "Automated scanner analysis with AI-assisted triage and evidence grounding.",
+            "limitations": (
+                "This report reflects findings from automated tooling and AI analysis. "
+                "All critical and high findings should be manually verified before remediation. "
+                + ("All findings are SYNTHETIC DEMO DATA." if project.is_demo else "")
+            ),
+        },
+        "scope": {
+            "authorized_scopes": [s.scope_value for s in scopes],
+            "assets_assessed": [{"hostname": a.hostname, "status": a.status.value} for a in assets],
+        },
+        "findings": report_findings,
+    }
+
+
+@router.post("/generate", response_model=ReportResponse, status_code=201)
+def generate_report(payload: ReportGenerateRequest, db: Session = Depends(get_db)):
+    """Generate a security assessment report."""
+    project = db.query(Project).filter(Project.id == payload.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    report_data = _build_report_data(project, db, include_evidence=payload.include_evidence)
+    findings_count = len(report_data["findings"])
+
+    report = SecurityReport(
+        project_id=payload.project_id,
+        title=payload.title or f"{project.name} — Security Assessment Report",
+        report_format=ReportFormat.JSON if payload.format == "json" else ReportFormat.PDF,
+        report_data=report_data,
+        findings_count=findings_count,
+        is_demo=project.is_demo,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+@router.get("", response_model=List[ReportResponse])
+def list_reports(project_id: str, db: Session = Depends(get_db)):
+    """List reports for a project."""
+    return db.query(SecurityReport).filter(
+        SecurityReport.project_id == project_id
+    ).order_by(SecurityReport.created_at.desc()).all()
+
+
+@router.get("/{report_id}/download")
+def download_report(report_id: str, db: Session = Depends(get_db)):
+    """Download a report as JSON."""
+    report = db.query(SecurityReport).filter(SecurityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    content = json.dumps(report.report_data, indent=2, default=str)
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="bughawk_report_{report_id[:8]}.json"'
+        },
+    )

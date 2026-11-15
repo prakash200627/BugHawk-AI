@@ -1,0 +1,319 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   BugHawk AI 2.0 — Global Design System
+   Dark Navy + Blue + Orange cybersecurity aesthetic
+   ============================================================ */
+
+:root {
+  --navy-950: #020818;
+  --navy-900: #050d1f;
+  --navy-800: #091428;
+  --navy-700: #0d1c35;
+  --navy-600: #122142;
+  --navy-500: #1a2f5c;
+
+  --cyber-blue: #3b82f6;
+  --cyber-blue-bright: #60a5fa;
+  --cyber-blue-dim: #1d4ed8;
+  --cyber-orange: #f97316;
+  --cyber-orange-bright: #fb923c;
+  --cyber-cyan: #06b6d4;
+  --cyber-purple: #8b5cf6;
+  --cyber-green: #10b981;
+  --cyber-red: #ef4444;
+  --cyber-yellow: #f59e0b;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border-color: rgba(59, 130, 246, 0.12);
+  --border-hover: rgba(59, 130, 246, 0.25);
+
+  --card-bg: rgba(9, 20, 40, 0.8);
+  --card-border: rgba(59, 130, 246, 0.1);
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
+
+/* Base reset */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--navy-950);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ============================================================
+   Component Utilities
+   ============================================================ */
+
+@layer components {
+  /* Glass card */
+  .card {
+    @apply bg-navy-800/80 border border-cyber-blue/10 rounded-xl backdrop-blur-sm;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(59, 130, 246, 0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card:hover {
+    @apply border-cyber-blue/20;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(59, 130, 246, 0.08);
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply card p-5 relative overflow-hidden;
+  }
+  .stat-card::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-px;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.4), transparent);
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200;
+    @apply bg-cyber-blue text-white;
+    @apply hover:bg-cyber-blue-bright hover:shadow-lg;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200;
+    @apply bg-navy-700 text-slate-300 border border-cyber-blue/15;
+    @apply hover:bg-navy-600 hover:border-cyber-blue/30 hover:text-white;
+  }
+
+  /* Orange accent button */
+  .btn-orange {
+    @apply px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200;
+    @apply bg-cyber-orange text-white;
+    @apply hover:bg-cyber-orange-bright;
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+  }
+
+  /* Danger button */
+  .btn-danger {
+    @apply px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200;
+    @apply bg-red-600/20 text-red-400 border border-red-500/30;
+    @apply hover:bg-red-600/30 hover:text-red-300;
+  }
+
+  /* Input field */
+  .input {
+    @apply w-full px-3 py-2 rounded-lg text-sm transition-all duration-200;
+    @apply bg-navy-900 text-slate-200 border border-cyber-blue/15;
+    @apply placeholder-slate-600;
+    @apply focus:outline-none focus:border-cyber-blue/50 focus:ring-1 focus:ring-cyber-blue/20;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium;
+  }
+  .badge-critical { @apply bg-red-500/20 text-red-400 border border-red-500/30; }
+  .badge-high { @apply bg-orange-500/20 text-orange-400 border border-orange-500/30; }
+  .badge-medium { @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30; }
+  .badge-low { @apply bg-blue-500/20 text-blue-400 border border-blue-500/30; }
+  .badge-info { @apply bg-slate-500/20 text-slate-400 border border-slate-500/30; }
+  .badge-demo { @apply bg-purple-500/20 text-purple-400 border border-purple-500/30; }
+  .badge-success { @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30; }
+
+  /* Table */
+  .data-table {
+    @apply w-full text-sm;
+  }
+  .data-table thead tr {
+    @apply border-b border-cyber-blue/10;
+  }
+  .data-table thead th {
+    @apply px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider;
+  }
+  .data-table tbody tr {
+    @apply border-b border-navy-700/50 transition-colors duration-150;
+    @apply hover:bg-cyber-blue/5;
+  }
+  .data-table tbody td {
+    @apply px-4 py-3 text-slate-300;
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply text-slate-400 hover:text-slate-200 hover:bg-cyber-blue/8;
+    cursor: pointer;
+  }
+  .nav-item.active {
+    @apply text-cyber-blue-bright bg-cyber-blue/12 border border-cyber-blue/20;
+    box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.05);
+  }
+  .nav-item.active svg {
+    @apply text-cyber-blue;
+  }
+
+  /* Page header */
+  .page-header {
+    @apply mb-6 flex items-start justify-between;
+  }
+  .page-title {
+    @apply text-2xl font-bold text-slate-100;
+  }
+  .page-subtitle {
+    @apply text-sm text-slate-400 mt-1;
+  }
+
+  /* Section divider */
+  .section-divider {
+    @apply border-t border-cyber-blue/8 my-6;
+  }
+
+  /* Demo banner */
+  .demo-banner {
+    @apply flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium;
+    @apply bg-purple-500/15 text-purple-400 border border-purple-500/25;
+  }
+
+  /* Severity indicator dot */
+  .sev-dot {
+    @apply w-2 h-2 rounded-full flex-shrink-0;
+  }
+  .sev-dot-critical { @apply bg-red-500; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+  .sev-dot-high { @apply bg-orange-500; box-shadow: 0 0 6px rgba(249, 115, 22, 0.6); }
+  .sev-dot-medium { @apply bg-yellow-500; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
+  .sev-dot-low { @apply bg-blue-500; box-shadow: 0 0 6px rgba(59, 130, 246, 0.6); }
+  .sev-dot-info { @apply bg-slate-500; }
+
+  /* Loading pulse */
+  .skeleton {
+    @apply bg-navy-700/50 rounded animate-pulse;
+  }
+
+  /* Code block */
+  .code-block {
+    @apply bg-navy-950 border border-cyber-blue/15 rounded-lg p-4 font-mono text-xs text-slate-300 overflow-x-auto;
+  }
+
+  /* Agent status indicator */
+  .agent-status {
+    @apply flex items-center gap-1.5 text-xs font-medium;
+  }
+  .agent-status-running { @apply text-cyber-blue; }
+  .agent-status-completed { @apply text-cyber-green; }
+  .agent-status-failed { @apply text-cyber-red; }
+  .agent-status-pending { @apply text-slate-400; }
+}
+
+/* ============================================================
+   Cyber grid background
+   ============================================================ */
+.cyber-grid-bg {
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ============================================================
+   Glow effects
+   ============================================================ */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2), 0 0 60px rgba(59, 130, 246, 0.05);
+}
+.glow-orange {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.2), 0 0 60px rgba(249, 115, 22, 0.05);
+}
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+.text-glow-blue {
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+/* ============================================================
+   Animated scanning line
+   ============================================================ */
+.scan-effect {
+  position: relative;
+  overflow: hidden;
+}
+.scan-effect::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
+  animation: scanLine 3s linear infinite;
+}
+
+/* ============================================================
+   React Flow custom styles
+   ============================================================ */
+.react-flow__node {
+  font-family: 'Inter', sans-serif;
+}
+.react-flow__edge-path {
+  stroke: rgba(59, 130, 246, 0.5);
+}
+
+/* ============================================================
+   Transition utilities
+   ============================================================ */
+.transition-fast { transition: all 0.15s ease; }
+.transition-normal { transition: all 0.25s ease; }
+.transition-slow { transition: all 0.4s ease; }
+
+/* ============================================================
+   Scrollable areas
+   ============================================================ */
+.scroll-area {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.2) transparent;
+}
+
+/* ============================================================
+   Focus styles
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+}
