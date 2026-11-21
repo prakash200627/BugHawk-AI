@@ -4,32 +4,36 @@ import {
   CheckCircle, Clock, AlertTriangle, FileJson, FileDown
 } from 'lucide-react';
 import { reportsApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { SecurityReport } from '../types';
 import clsx from 'clsx';
 
-const DEMO_PROJECT_ID = 'demo-project-id';
 
 export default function ReportsPage() {
+  const { projectId } = useSession();
   const [reports, setReports] = useState<SecurityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 
   const fetchReports = useCallback(async () => {
+    if (!projectId) { setReports([]); setLoading(false); return; }
     try {
-      const res = await reportsApi.list(DEMO_PROJECT_ID);
+      const res = await reportsApi.list(projectId);
       setReports(res.data); setError('');
     } catch { setError('Could not load reports. Ensure backend is running.'); }
     finally { setLoading(false); }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => { fetchReports(); }, [fetchReports]);
 
   const generateReport = async () => {
+    if (!projectId) return;
     setGenerating(true);
     try {
       await reportsApi.generate({
-        project_id: DEMO_PROJECT_ID,
+        project_id: projectId,
         title: `Security Assessment Report — ${new Date().toLocaleDateString()}`,
         format: 'json',
       });
@@ -63,6 +67,8 @@ export default function ReportsPage() {
     { label: 'Limitations', desc: 'Scope boundaries and assessment constraints' },
     { label: 'Timestamp & Attribution', desc: 'Assessment date, platform version, and analyst notes' },
   ];
+
+  if (!projectId) return <NoProject />;
 
   return (
     <div className="space-y-5 animate-fade-in">

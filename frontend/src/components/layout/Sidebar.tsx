@@ -6,6 +6,7 @@ import {
   ChevronRight, Zap, AlertTriangle
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useSession } from '../../lib/session';
 
 interface NavItem {
   path: string;
@@ -19,7 +20,7 @@ const navItems: NavItem[] = [
   { path: '/', label: 'Overview', icon: <LayoutDashboard size={18} /> },
   { path: '/assets', label: 'Asset Inventory', icon: <Server size={18} /> },
   { path: '/scans', label: 'Scan Management', icon: <ScanLine size={18} /> },
-  { path: '/findings', label: 'Vulnerability Intelligence', icon: <Bug size={18} />, badge: '5', badgeType: 'danger' },
+  { path: '/findings', label: 'Vulnerability Intelligence', icon: <Bug size={18} /> },
   { path: '/analyst', label: 'AI Security Analyst', icon: <Bot size={18} /> },
   { path: '/attack-paths', label: 'Attack Path Analysis', icon: <Share2 size={18} /> },
   { path: '/remediation', label: 'Remediation Center', icon: <Wrench size={18} /> },
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { user } = useSession();
 
   return (
     <aside
@@ -123,10 +125,10 @@ export default function Sidebar() {
       {!collapsed && (
         <div className="px-4 py-3 border-t border-cyber-blue/10 animate-fade-in">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyber-green animate-pulse" />
-            <span>Backend Connected</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
+            <span>Signed in</span>
           </div>
-          <div className="text-xs text-slate-600 mt-1">demo@bughawk.ai</div>
+          <div className="text-xs text-slate-600 mt-1 truncate">{user?.email || 'Account'}</div>
         </div>
       )}
 

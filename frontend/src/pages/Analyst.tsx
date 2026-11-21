@@ -5,10 +5,11 @@ import {
   RefreshCw, Info, CheckCircle, XCircle
 } from 'lucide-react';
 import { agentsApi, findingsApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { SecurityFinding, ChatMessage, AgentAnalyzeResponse } from '../types';
 import clsx from 'clsx';
 
-const DEMO_PROJECT_ID = 'demo-project-id';
 
 const SUGGESTED_QUESTIONS = [
   'Explain this vulnerability in simple terms.',
@@ -148,6 +149,7 @@ function AnalysisPanel({ analysis }: { analysis: AgentAnalyzeResponse }) {
 }
 
 export default function AnalystPage() {
+  const { projectId } = useSession();
   const [findings, setFindings] = useState<SecurityFinding[]>([]);
   const [selectedFinding, setSelectedFinding] = useState<SecurityFinding | null>(null);
   const [messages, setMessages] = useState<(ChatMessage & { is_demo?: boolean })[]>([]);
@@ -159,10 +161,11 @@ export default function AnalystPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    findingsApi.list(DEMO_PROJECT_ID, {}).then((res) => {
+    if (!projectId) { setFindings([]); return; }
+    findingsApi.list(projectId, {}).then((res) => {
       setFindings(res.data);
     }).catch(() => {});
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -213,7 +216,7 @@ export default function AnalystPage() {
 
     try {
       const res = await agentsApi.chat({
-        project_id: DEMO_PROJECT_ID,
+        project_id: projectId!,
         messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
         finding_id: selectedFinding?.id,
       });
@@ -239,7 +242,7 @@ export default function AnalystPage() {
     setActiveTab('analysis');
 
     try {
-      const res = await agentsApi.analyze(selectedFinding.id, DEMO_PROJECT_ID);
+      const res = await agentsApi.analyze(selectedFinding.id, projectId!);
       setAnalysis(res.data);
     } catch {
       setMessages(prev => [...prev, {
@@ -252,6 +255,8 @@ export default function AnalystPage() {
       setAnalyzing(false);
     }
   };
+
+  if (!projectId) return <NoProject />;
 
   return (
     <div className="flex gap-4 h-[calc(100vh-10rem)] animate-fade-in">

@@ -11,8 +11,8 @@ from app.config import settings
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=2,
+    max_overflow=2,
     echo=settings.app_debug,
 )
 

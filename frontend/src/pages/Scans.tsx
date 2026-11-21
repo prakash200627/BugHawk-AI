@@ -5,10 +5,11 @@ import {
   Terminal, RefreshCw
 } from 'lucide-react';
 import { scansApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { ScanJob } from '../types';
 import clsx from 'clsx';
 
-const DEMO_PROJECT_ID = 'demo-project-id';
 
 const SCAN_MODULES = [
   { id: 'subfinder', label: 'Subfinder', desc: 'Passive subdomain enumeration', category: 'recon' },
@@ -33,7 +34,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function NewScanModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function NewScanModal({ onClose, onCreated, projectId }: { onClose: () => void; onCreated: () => void; projectId: string }) {
   const [form, setForm] = useState({ name: '', target: '', modules: ['subfinder', 'httpx'] });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -49,7 +50,7 @@ function NewScanModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
     if (!form.name.trim() || !form.target.trim()) { setError('Name and target are required.'); return; }
     setCreating(true); setError('');
     try {
-      await scansApi.create({ project_id: DEMO_PROJECT_ID, name: form.name, target: form.target, modules: form.modules });
+      await scansApi.create({ project_id: projectId, name: form.name, target: form.target, modules: form.modules });
       onCreated(); onClose();
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Failed to create scan. Ensure backend is running.');
@@ -111,26 +112,30 @@ function NewScanModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
 }
 
 export default function ScansPage() {
+  const { projectId } = useSession();
   const [scans, setScans] = useState<ScanJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
 
   const fetchScans = useCallback(async () => {
+    if (!projectId) { setScans([]); setLoading(false); return; }
     try {
-      const res = await scansApi.list(DEMO_PROJECT_ID);
+      const res = await scansApi.list(projectId);
       setScans(res.data); setError('');
     } catch { setError('Could not load scans. Ensure backend is running.'); }
     finally { setLoading(false); }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => { fetchScans(); }, [fetchScans]);
+
+  if (!projectId) return <NoProject />;
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="page-header">
         <div>
-          <div className="demo-banner mb-3"><FlaskConical size={12} />Scan Management — Demo project scope: demo-app.internal</div>
+          <div className="demo-banner mb-3"><FlaskConical size={12} />Scan jobs are stored for this account. Nothing is executed until a worker is connected.</div>
           <div className="flex items-center gap-1.5 text-xs text-slate-500"><Shield size={12} className="text-cyber-green" />Scope Guardian active — all targets validated before execution</div>
         </div>
         <div className="flex gap-2">
@@ -185,7 +190,7 @@ export default function ScansPage() {
           </table>
         )}
       </div>
-      {showModal && <NewScanModal onClose={() => setShowModal(false)} onCreated={fetchScans} />}
+      {showModal && <NewScanModal projectId={projectId} onClose={() => setShowModal(false)} onCreated={fetchScans} />}
     </div>
   );
 }

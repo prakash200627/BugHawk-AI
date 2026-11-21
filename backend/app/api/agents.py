@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
+from app.api.deps import get_current_user, require_owned_finding, require_owned_project
 from app.database.session import get_db
-from app.models import SecurityFinding, AgentExecution, AgentStatus
+from app.models import SecurityFinding, AgentExecution, AgentStatus, User
 from app.schemas import (
     AgentChatRequest, AgentChatResponse,
     AgentAnalyzeRequest, AgentAnalyzeResponse
@@ -138,17 +139,24 @@ def _get_demo_response(messages: List) -> str:
 
 
 @router.post("/chat", response_model=AgentChatResponse)
-def agent_chat(payload: AgentChatRequest, db: Session = Depends(get_db)):
+def agent_chat(
+    payload: AgentChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Conversational AI security analyst.
     Uses stored finding data as context.
     In demo mode, returns structured mock responses.
     """
+    require_owned_project(payload.project_id, db, current_user)
     finding_context = None
 
     # Load finding context if provided
     if payload.finding_id:
-        finding = db.query(SecurityFinding).filter(SecurityFinding.id == payload.finding_id).first()
+        finding = require_owned_finding(payload.finding_id, db, current_user)
+        if finding.project_id != payload.project_id:
+            raise HTTPException(status_code=403, detail="Finding is not in this project")
         if finding:
             finding_context = {
                 "id": finding.id,
@@ -197,14 +205,20 @@ def agent_chat(payload: AgentChatRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/analyze/{finding_id}", response_model=AgentAnalyzeResponse)
-def analyze_finding(finding_id: str, payload: AgentAnalyzeRequest, db: Session = Depends(get_db)):
+def analyze_finding(
+    finding_id: str,
+    payload: AgentAnalyzeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Deep AI analysis of a specific finding.
     Returns structured analysis including explanation, severity assessment, and remediation.
     """
-    finding = db.query(SecurityFinding).filter(SecurityFinding.id == finding_id).first()
-    if not finding:
-        raise HTTPException(status_code=404, detail="Finding not found")
+    require_owned_project(payload.project_id, db, current_user)
+    finding = require_owned_finding(finding_id, db, current_user)
+    if finding.project_id != payload.project_id:
+        raise HTTPException(status_code=403, detail="Finding is not in this project")
 
     # Record execution
     execution = AgentExecution(

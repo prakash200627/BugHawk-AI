@@ -351,6 +351,8 @@ DEMO_ASSETS = [
 
 
 def seed_demo():
+    if settings.is_production:
+        raise RuntimeError("seed_demo.py cannot run when APP_ENV=production")
     db = SessionLocal()
     try:
         print("🦅 BugHawk AI 2.0 — Demo Data Seeder")

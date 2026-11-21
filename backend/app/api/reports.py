@@ -7,8 +7,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user, require_owned_project
 from app.database.session import get_db
-from app.models import SecurityReport, Project, SecurityFinding, Asset, AuthorizedScope, ReportFormat
+from app.models import SecurityReport, Project, SecurityFinding, Asset, AuthorizedScope, ReportFormat, User
 from app.schemas import ReportGenerateRequest, ReportResponse
 from app.config import settings
 
@@ -79,11 +80,13 @@ def _build_report_data(project: Project, db: Session, include_evidence: bool = T
 
 
 @router.post("/generate", response_model=ReportResponse, status_code=201)
-def generate_report(payload: ReportGenerateRequest, db: Session = Depends(get_db)):
-    """Generate a security assessment report."""
-    project = db.query(Project).filter(Project.id == payload.project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+def generate_report(
+    payload: ReportGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate a security assessment report for an owned project."""
+    project = require_owned_project(payload.project_id, db, current_user)
 
     report_data = _build_report_data(project, db, include_evidence=payload.include_evidence)
     findings_count = len(report_data["findings"])
@@ -103,19 +106,29 @@ def generate_report(payload: ReportGenerateRequest, db: Session = Depends(get_db
 
 
 @router.get("", response_model=List[ReportResponse])
-def list_reports(project_id: str, db: Session = Depends(get_db)):
-    """List reports for a project."""
+def list_reports(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List reports for a project owned by the authenticated user."""
+    require_owned_project(project_id, db, current_user)
     return db.query(SecurityReport).filter(
         SecurityReport.project_id == project_id
     ).order_by(SecurityReport.created_at.desc()).all()
 
 
 @router.get("/{report_id}/download")
-def download_report(report_id: str, db: Session = Depends(get_db)):
-    """Download a report as JSON."""
+def download_report(
+    report_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Download a report from a project owned by the authenticated user."""
     report = db.query(SecurityReport).filter(SecurityReport.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
+    require_owned_project(report.project_id, db, current_user)
 
     content = json.dumps(report.report_data, indent=2, default=str)
     return Response(

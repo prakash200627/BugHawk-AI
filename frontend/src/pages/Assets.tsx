@@ -5,96 +5,14 @@ import {
   RefreshCw, X, AlertCircle,
 } from 'lucide-react';
 import { assetsApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { Asset, AssetStatus } from '../types';
 
 // ============================================================
 // Constants
 // ============================================================
 
-const DEMO_PROJECT_ID = 'demo-project-id';
-
-const MOCK_ASSETS: Asset[] = [
-  {
-    id: 'asset-1',
-    project_id: DEMO_PROJECT_ID,
-    hostname: 'app.demo-target.com',
-    asset_type: 'web',
-    status: 'live',
-    ip_addresses: ['104.21.45.12'],
-    technologies: ['nginx', 'React', 'Node.js'],
-    http_status_code: 200,
-    title: 'Demo Application',
-    discovery_source: 'subfinder',
-    is_in_scope: true,
-    is_demo: true,
-    last_seen: new Date(Date.now() - 3600000).toISOString(),
-    created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-  },
-  {
-    id: 'asset-2',
-    project_id: DEMO_PROJECT_ID,
-    hostname: 'api.demo-target.com',
-    asset_type: 'api',
-    status: 'live',
-    ip_addresses: ['104.21.45.13'],
-    technologies: ['FastAPI', 'Python', 'PostgreSQL'],
-    http_status_code: 200,
-    title: 'REST API',
-    discovery_source: 'subfinder',
-    is_in_scope: true,
-    is_demo: true,
-    last_seen: new Date(Date.now() - 7200000).toISOString(),
-    created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-  },
-  {
-    id: 'asset-3',
-    project_id: DEMO_PROJECT_ID,
-    hostname: 'admin.demo-target.com',
-    asset_type: 'web',
-    status: 'live',
-    ip_addresses: ['104.21.45.14'],
-    technologies: ['Apache', 'PHP'],
-    http_status_code: 403,
-    title: 'Admin Panel',
-    discovery_source: 'httpx',
-    is_in_scope: true,
-    is_demo: true,
-    last_seen: new Date(Date.now() - 14400000).toISOString(),
-    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-  },
-  {
-    id: 'asset-4',
-    project_id: DEMO_PROJECT_ID,
-    hostname: 'dev.demo-target.com',
-    asset_type: 'web',
-    status: 'down',
-    ip_addresses: ['104.21.45.15'],
-    technologies: ['nginx'],
-    http_status_code: 503,
-    title: 'Dev Environment',
-    discovery_source: 'subfinder',
-    is_in_scope: true,
-    is_demo: true,
-    last_seen: new Date(Date.now() - 86400000 * 2).toISOString(),
-    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-  },
-  {
-    id: 'asset-5',
-    project_id: DEMO_PROJECT_ID,
-    hostname: 'staging.demo-target.com',
-    asset_type: 'web',
-    status: 'unknown',
-    ip_addresses: [],
-    technologies: [],
-    http_status_code: undefined,
-    title: undefined,
-    discovery_source: 'manual',
-    is_in_scope: false,
-    is_demo: true,
-    last_seen: undefined,
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-];
 
 // ============================================================
 // Sub-components
@@ -299,6 +217,7 @@ function ImportModal({ onClose, onImport }: ImportModalProps) {
 type StatusFilter = 'all' | AssetStatus;
 
 export default function AssetsPage() {
+  const { projectId } = useSession();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -313,15 +232,16 @@ export default function AssetsPage() {
       const params: Record<string, string> = {};
       if (statusFilter !== 'all') params.status = statusFilter;
       if (search.trim()) params.search = search.trim();
-      const res = await assetsApi.list(DEMO_PROJECT_ID, params);
+      if (!projectId) { setAssets([]); return; }
+      const res = await assetsApi.list(projectId, params);
       setAssets(res.data);
     } catch {
-      setError('Backend not connected — showing demo data.');
-      setAssets(MOCK_ASSETS);
+      setError('Could not load assets.');
+      setAssets([]);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, search]);
+  }, [statusFilter, search, projectId]);
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchAssets(); }, search ? 400 : 0);
@@ -330,7 +250,8 @@ export default function AssetsPage() {
 
   async function handleImport(jsonText: string) {
     const parsed = JSON.parse(jsonText);
-    await assetsApi.import({ project_id: DEMO_PROJECT_ID, assets: parsed });
+    if (!projectId) return;
+    await assetsApi.import({ project_id: projectId, assets: parsed });
     fetchAssets();
   }
 
@@ -350,6 +271,8 @@ export default function AssetsPage() {
     { label: 'Down', value: 'down', icon: <XCircle size={12} /> },
     { label: 'Unknown', value: 'unknown', icon: <HelpCircle size={12} /> },
   ];
+
+  if (!projectId) return <NoProject />;
 
   return (
     <div className="space-y-6">

@@ -66,7 +66,7 @@ function StatusDot({ status }: { status: string }) {
 export default function AgentActivityPage() {
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="demo-banner"><FlaskConical size={12} />Agent Activity — Demo execution log · Simulated LangGraph orchestration run</div>
+      <div className="demo-banner"><FlaskConical size={12} />Agent Activity — demo illustration only. This log is not loaded from the API and is not your account data.</div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -5,7 +5,7 @@ Loads settings from environment variables with safe defaults.
 from functools import lru_cache
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 
 
 class Settings(BaseSettings):
@@ -57,8 +57,8 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/1"
 
-    # Demo Mode
-    demo_mode: bool = True
+    # Demo Mode. Production stays off unless DEMO_MODE=true is set explicitly.
+    demo_mode: bool = False
     demo_admin_email: str = "demo@bughawk.ai"
     demo_admin_password: str = ""
 
@@ -74,9 +74,40 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.app_env == "production"
 
+    @model_validator(mode="after")
+    def force_production_debug_off(self) -> "Settings":
+        """Production never runs with debug enabled, even if APP_DEBUG=true is set."""
+        if self.is_production and self.app_debug:
+            self.app_debug = False
+        return self
+
     @property
     def is_demo(self) -> bool:
+        if self.is_production:
+            return self.demo_mode
         return self.llm_provider == "demo" or self.demo_mode
+
+    def validate_runtime_settings(self) -> None:
+        """Refuse to boot a public deployment with missing secrets or local origins."""
+        if not self.is_production:
+            return
+        problems = []
+        if len(self.app_secret_key) < 32:
+            problems.append("APP_SECRET_KEY")
+        if len(self.jwt_secret_key) < 32:
+            problems.append("JWT_SECRET_KEY")
+        origins = self.get_allowed_origins()
+        if not origins or any(
+            marker in origin
+            for origin in origins
+            for marker in ("localhost", "127.0.0.1")
+        ):
+            problems.append("ALLOWED_ORIGINS")
+        if problems:
+            raise RuntimeError(
+                "Refusing to start in production. Set secure values for: "
+                + ", ".join(problems)
+            )
 
 
 @lru_cache()

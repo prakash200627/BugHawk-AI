@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app.api.deps import get_current_user, require_owned_finding, require_owned_project
 from app.database.session import get_db
-from app.models import SecurityFinding, Asset, Severity, ValidationStatus, ConfidenceLevel
+from app.models import SecurityFinding, Asset, Severity, ValidationStatus, ConfidenceLevel, User
 from app.schemas import FindingImportRequest, FindingResponse, MessageResponse, DashboardStats
 
 router = APIRouter()
@@ -34,8 +35,13 @@ def _map_severity(raw: str) -> Severity:
 
 
 @router.post("/import", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-def import_findings(payload: FindingImportRequest, db: Session = Depends(get_db)):
+def import_findings(
+    payload: FindingImportRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Import scanner findings. Deduplication is applied automatically."""
+    require_owned_project(payload.project_id, db, current_user)
     imported = 0
     duplicates = 0
 
@@ -91,8 +97,10 @@ def list_findings(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """List findings with filters."""
+    """List findings for a project owned by the authenticated user."""
+    require_owned_project(project_id, db, current_user)
     q = db.query(SecurityFinding).filter(SecurityFinding.project_id == project_id)
 
     if severity:
@@ -108,8 +116,13 @@ def list_findings(
 
 
 @router.get("/stats/{project_id}", response_model=DashboardStats)
-def get_dashboard_stats(project_id: str, db: Session = Depends(get_db)):
-    """Get aggregated dashboard statistics for a project."""
+def get_dashboard_stats(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get aggregated dashboard statistics for an owned project."""
+    require_owned_project(project_id, db, current_user)
     from app.models import Asset, ScanJob, AssetStatus
 
     total_assets = db.query(func.count(Asset.id)).filter(Asset.project_id == project_id).scalar() or 0
@@ -165,9 +178,10 @@ def get_dashboard_stats(project_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{finding_id}", response_model=FindingResponse)
-def get_finding(finding_id: str, db: Session = Depends(get_db)):
-    """Get a single finding by ID."""
-    finding = db.query(SecurityFinding).filter(SecurityFinding.id == finding_id).first()
-    if not finding:
-        raise HTTPException(status_code=404, detail="Finding not found")
-    return finding
+def get_finding(
+    finding_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a finding from a project owned by the authenticated user."""
+    return require_owned_finding(finding_id, db, current_user)

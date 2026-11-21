@@ -4,12 +4,13 @@ import {
   FlaskConical, AlertTriangle, Globe, ChevronRight
 } from 'lucide-react';
 import { scopesApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { AuthorizedScope, ScopeValidationResult } from '../types';
 import clsx from 'clsx';
 
-const DEMO_PROJECT_ID = 'demo-project-id';
 
-function AddScopeModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+function AddScopeModal({ onClose, onAdded, projectId }: { onClose: () => void; onAdded: () => void; projectId: string }) {
   const [form, setForm] = useState({ scope_value: '', notes: '', authorized_by: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +19,7 @@ function AddScopeModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
     if (!form.scope_value.trim()) { setError('Scope value is required.'); return; }
     setSaving(true); setError('');
     try {
-      await scopesApi.add(DEMO_PROJECT_ID, form);
+      await scopesApi.add(projectId, form);
       onAdded(); onClose();
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Failed to add scope rule.');
@@ -61,6 +62,7 @@ function AddScopeModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
 }
 
 export default function ScopePage() {
+  const { projectId } = useSession();
   const [scopes, setScopes] = useState<AuthorizedScope[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -69,20 +71,21 @@ export default function ScopePage() {
   const [validating, setValidating] = useState(false);
 
   const fetchScopes = useCallback(async () => {
+    if (!projectId) { setScopes([]); setLoading(false); return; }
     try {
-      const res = await scopesApi.list(DEMO_PROJECT_ID);
+      const res = await scopesApi.list(projectId);
       setScopes(res.data);
     } catch {}
     finally { setLoading(false); }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => { fetchScopes(); }, [fetchScopes]);
 
   const runValidation = async () => {
-    if (!validateTarget.trim()) return;
+    if (!projectId || !validateTarget.trim()) return;
     setValidating(true); setValidationResult(null);
     try {
-      const res = await scopesApi.validate({ target: validateTarget, project_id: DEMO_PROJECT_ID });
+      const res = await scopesApi.validate({ target: validateTarget, project_id: projectId });
       setValidationResult(res.data);
     } catch { setValidationResult(null); }
     finally { setValidating(false); }
@@ -94,6 +97,8 @@ export default function ScopePage() {
       setScopes(prev => prev.filter(s => s.id !== id));
     } catch {}
   };
+
+  if (!projectId) return <NoProject />;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -217,7 +222,7 @@ export default function ScopePage() {
           </table>
         )}
       </div>
-      {showModal && <AddScopeModal onClose={() => setShowModal(false)} onAdded={fetchScopes} />}
+      {showModal && <AddScopeModal projectId={projectId} onClose={() => setShowModal(false)} onAdded={fetchScopes} />}
     </div>
   );
 }

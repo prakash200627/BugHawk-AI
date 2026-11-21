@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Settings, Zap, Bot, Shield, Wrench, Database, Key,
-  Eye, EyeOff, Save, CheckCircle, FlaskConical, Info
+  Eye, EyeOff, Save, FlaskConical, Info
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -30,20 +30,14 @@ function FieldRow({ label, desc, children }: { label: string; desc?: string; chi
 
 export default function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [demoMode, setDemoMode] = useState(true);
   const [llmProvider, setLlmProvider] = useState('demo');
-
-  const save = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
 
   return (
     <div className="space-y-5 max-w-3xl animate-fade-in">
       <div className="demo-banner">
         <FlaskConical size={12} />
-        Settings — All configuration is stored server-side via environment variables. Changes here update .env only in demo mode.
+        Settings — Display only. Server configuration is set with environment variables. This page does not change them and does not show live connection status.
       </div>
 
       {/* General */}
@@ -53,8 +47,8 @@ export default function SettingsPage() {
         </FieldRow>
         <FieldRow label="Environment" desc="Current deployment environment">
           <div className="flex items-center gap-2">
-            <span className="badge badge-demo">demo</span>
-            <span className="text-xs text-slate-500">Set via ENVIRONMENT env var</span>
+            <span className="badge badge-demo">server-configured</span>
+            <span className="text-xs text-slate-500">Set via APP_ENV. This page does not read it.</span>
           </div>
         </FieldRow>
         <FieldRow label="Demo Mode" desc="Uses synthetic data, no real LLM calls">
@@ -160,18 +154,17 @@ export default function SettingsPage() {
 
       {/* Database */}
       <Section title="Database" icon={<Database size={14} className="text-slate-400" />}>
-        <FieldRow label="Connection" desc="Set via DATABASE_URL env var">
-          <div className="flex items-center gap-2">
-            <code className="text-xs font-mono text-slate-400 bg-navy-900 px-3 py-2 rounded-lg">postgresql://user:pass@localhost:5432/bughawk</code>
-            <span className="badge badge-success flex items-center gap-1 text-xs"><CheckCircle size={10} />Connected</span>
-          </div>
+        <FieldRow label="Connection" desc="Set with DATABASE_URL on the server">
+          <p className="text-sm text-slate-400">
+            Credentials stay on the server. Use the API health check for connectivity. This page does not display a connection string or status.
+          </p>
         </FieldRow>
       </Section>
 
       {/* Save */}
       <div className="flex justify-end">
-        <button onClick={save} className="btn-primary flex items-center gap-2" id="save-settings-btn">
-          {saved ? <><CheckCircle size={14} />Saved!</> : <><Save size={14} />Save Settings</>}
+        <button type="button" disabled className="btn-primary flex items-center gap-2 opacity-60" id="save-settings-btn">
+          <Save size={14} />Server configuration is read-only
         </button>
       </div>
     </div>

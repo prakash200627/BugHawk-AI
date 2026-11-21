@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Search, RefreshCw, Zap } from 'lucide-react';
-import { healthApi } from '../../lib/api';
+import { LogOut, RefreshCw } from 'lucide-react';
+import { healthApi, projectsApi } from '../../lib/api';
+import { useSession } from '../../lib/session';
 import type { HealthResponse } from '../../types';
 
 interface HeaderProps {
@@ -9,8 +10,10 @@ interface HeaderProps {
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
+  const { user, projects, projectId, selectProject, refreshProjects, logout } = useSession();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [checking, setChecking] = useState(false);
+  const [projectName, setProjectName] = useState('');
 
   const checkHealth = async () => {
     setChecking(true);
@@ -40,16 +43,35 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className="relative hidden md:flex items-center">
-          <Search size={14} className="absolute left-3 text-slate-500" />
+        <select
+          className="input py-1.5 text-xs max-w-[180px]"
+          value={projectId || ''}
+          onChange={(event) => selectProject(event.target.value)}
+          aria-label="Selected project"
+        >
+          {projects.length === 0 && <option value="">No projects</option>}
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>{project.name}</option>
+          ))}
+        </select>
+        <form
+          className="flex items-center gap-2"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (!projectName.trim()) return;
+            const created = await projectsApi.create({ name: projectName.trim() });
+            setProjectName('');
+            await refreshProjects(created.data.id);
+          }}
+        >
           <input
-            type="text"
-            placeholder="Search findings, assets..."
-            className="input pl-9 pr-4 py-1.5 w-56 text-xs"
-            id="global-search"
+            className="input py-1.5 w-36 text-xs"
+            placeholder="New project"
+            value={projectName}
+            onChange={(event) => setProjectName(event.target.value)}
           />
-        </div>
+          <button className="btn-secondary text-xs py-1.5" type="submit">Add</button>
+        </form>
 
         {/* Backend status */}
         <button
@@ -67,24 +89,14 @@ export default function Header({ title, subtitle }: HeaderProps) {
           </span>
         </button>
 
-        {/* Notifications */}
         <button
-          className="relative p-2 rounded-lg bg-navy-800 border border-cyber-blue/15 text-slate-400 hover:text-slate-200 hover:border-cyber-blue/30 transition-all"
-          id="notifications-btn"
-          aria-label="Notifications"
+          className="p-2 rounded-lg bg-navy-800 border border-cyber-blue/15 text-slate-400 hover:text-slate-200"
+          onClick={() => { logout(); window.location.href = '/login'; }}
+          aria-label="Sign out"
+          title={user?.email || 'Sign out'}
         >
-          <Bell size={16} />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-cyber-orange border border-navy-800" />
+          <LogOut size={16} />
         </button>
-
-        {/* User avatar */}
-        <div
-          className="w-8 h-8 rounded-full bg-gradient-to-br from-cyber-blue to-cyber-purple flex items-center justify-center cursor-pointer"
-          id="user-menu-btn"
-          title="demo@bughawk.ai"
-        >
-          <Zap size={14} className="text-white" />
-        </div>
       </div>
     </header>
   );

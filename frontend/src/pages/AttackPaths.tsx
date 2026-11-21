@@ -120,7 +120,7 @@ export default function AttackPathsPage() {
       {/* Demo banner */}
       <div className="demo-banner">
         <FlaskConical size={12} />
-        Attack Path Analysis — Demo project · Synthetic relationship graph · Hypothetical paths are NOT confirmed exploits
+        Attack Path Analysis — demo illustration only. This graph is not loaded from the API and is not your account data. Hypothetical paths are not confirmed exploits.
       </div>
 
       {/* Legend */}

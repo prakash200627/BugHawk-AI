@@ -1,7 +1,8 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, Navigate, Routes, Route, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import Layout from './components/layout/Layout';
+import { SessionProvider, useSession } from './lib/session';
 
 // Lazy-loaded pages for optimal performance
 const Overview       = lazy(() => import('./pages/Overview'));
@@ -15,6 +16,7 @@ const Reports        = lazy(() => import('./pages/Reports'));
 const AgentActivity  = lazy(() => import('./pages/AgentActivity'));
 const Scope          = lazy(() => import('./pages/Scope'));
 const Settings       = lazy(() => import('./pages/Settings'));
+const Login          = lazy(() => import('./pages/Login'));
 
 function PageLoader() {
   return (
@@ -27,12 +29,24 @@ function PageLoader() {
   );
 }
 
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { token, loading } = useSession();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!loading && !token) navigate('/login', { replace: true });
+  }, [loading, token, navigate]);
+  if (loading || !token) return <PageLoader />;
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
+    <SessionProvider>
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<Layout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
             <Route index          element={<Overview />} />
             <Route path="assets"       element={<Assets />} />
             <Route path="scans"        element={<Scans />} />
@@ -45,8 +59,10 @@ export default function App() {
             <Route path="scope"        element={<Scope />} />
             <Route path="settings"     element={<Settings />} />
           </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </SessionProvider>
   );
 }

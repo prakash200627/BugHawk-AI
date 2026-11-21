@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
+from app.api.deps import get_current_user, require_owned_project
 from app.database.session import get_db
-from app.models import Asset, AuthorizedScope, AssetStatus
+from app.models import Asset, AuthorizedScope, User
 from app.schemas import AssetCreate, AssetResponse, AssetImportRequest, MessageResponse
 from app.core.scope_guard import ScopeGuardian
 
@@ -33,8 +34,10 @@ def list_assets(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """List assets for a project with optional filtering."""
+    """List assets for a project owned by the authenticated user."""
+    require_owned_project(project_id, db, current_user)
     q = db.query(Asset).filter(Asset.project_id == project_id)
     if status:
         q = q.filter(Asset.status == status)
@@ -44,12 +47,17 @@ def list_assets(
 
 
 @router.post("/import", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-def import_assets(payload: AssetImportRequest, db: Session = Depends(get_db)):
+def import_assets(
+    payload: AssetImportRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Import a batch of assets for a project.
     Each asset is validated against authorized scopes before import.
     Out-of-scope assets are stored with is_in_scope=False and NOT processed further.
     """
+    require_owned_project(payload.project_id, db, current_user)
     imported = 0
     skipped = 0
     out_of_scope = 0

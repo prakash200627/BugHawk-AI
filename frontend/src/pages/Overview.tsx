@@ -9,6 +9,8 @@ import {
   RefreshCw, ChevronRight, Zap, Target, FlaskConical
 } from 'lucide-react';
 import { findingsApi, projectsApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { DashboardStats, SecurityFinding } from '../types';
 import clsx from 'clsx';
 
@@ -132,9 +134,9 @@ function ValidationBadge({ status }: { status: string }) {
 // Main Overview Page
 // ============================================================
 
-const DEMO_PROJECT_ID = 'demo-project-id';
 
 export default function OverviewPage() {
+  const { projectId } = useSession();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentFindings, setRecentFindings] = useState<SecurityFinding[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,40 +144,24 @@ export default function OverviewPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const fetchData = useCallback(async () => {
+    if (!projectId) { setLoading(false); return; }
     try {
       setError(null);
       const [statsRes, findingsRes] = await Promise.all([
-        findingsApi.stats(DEMO_PROJECT_ID),
-        findingsApi.list(DEMO_PROJECT_ID, {}),
+        findingsApi.stats(projectId),
+        findingsApi.list(projectId, {}),
       ]);
       setStats(statsRes.data);
       setRecentFindings(findingsRes.data.slice(0, 5));
       setLastUpdated(new Date());
-    } catch (err: any) {
-      if (err?.response?.status === 404 || err?.code === 'ERR_NETWORK') {
-        setError('Backend not connected. Start the FastAPI server and seed demo data.');
-      } else {
-        setError('Failed to load dashboard data.');
-      }
-      // Fallback demo stats
-      setStats({
-        total_assets: 5,
-        live_assets: 4,
-        total_findings: 5,
-        critical_findings: 1,
-        high_findings: 2,
-        medium_findings: 1,
-        low_findings: 1,
-        info_findings: 0,
-        potential_duplicates: 0,
-        findings_pending_review: 3,
-        total_scans: 1,
-        active_scans: 0,
-      });
+    } catch {
+      setStats(null);
+      setRecentFindings([]);
+      setError('Could not load dashboard data.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     fetchData();
@@ -200,6 +186,8 @@ export default function OverviewPage() {
     );
   }
 
+  if (!projectId) return <NoProject />;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Demo + Error banner */}
@@ -207,7 +195,7 @@ export default function OverviewPage() {
         <div className="flex items-center gap-3">
           <div className="demo-banner">
             <FlaskConical size={12} />
-            <span>BugHawk Demo Application — Synthetic data for demonstration</span>
+            <span>Showing the selected project for the signed-in account.</span>
           </div>
           {error && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">

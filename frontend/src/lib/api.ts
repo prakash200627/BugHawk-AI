@@ -1,8 +1,9 @@
 // BugHawk AI 2.0 — Axios API Client
 import axios from 'axios';
 
+const configuredOrigin = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, '');
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: configuredOrigin ? `${configuredOrigin}/api` : '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -22,9 +23,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const path = String(error.config?.url || '');
+    if (error.response?.status === 401 && !path.includes('/auth/login')) {
       localStorage.removeItem('bughawk_token');
-      window.location.href = '/';
+      if (window.location.pathname !== '/login') window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -33,6 +35,12 @@ api.interceptors.response.use(
 // ============================================================
 // API Functions
 // ============================================================
+
+export const authApi = {
+  login: (email: string, password: string) =>
+    api.post('/auth/login', { email, password }),
+  me: () => api.get('/auth/me'),
+};
 
 export const healthApi = {
   check: () => api.get('/health'),

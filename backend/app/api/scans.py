@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
+from app.api.deps import get_current_user, require_owned_project
 from app.database.session import get_db
-from app.models import ScanJob, AuthorizedScope, ScanStatus
+from app.models import ScanJob, AuthorizedScope, ScanStatus, User
 from app.schemas import ScanCreate, ScanResponse, MessageResponse
 from app.core.scope_guard import ScopeGuardian
 
@@ -17,12 +18,17 @@ ALLOWED_MODULES = {"subfinder", "httpx", "nuclei", "semgrep", "zap", "import"}
 
 
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)
-def create_scan(payload: ScanCreate, db: Session = Depends(get_db)):
+def create_scan(
+    payload: ScanCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Create a scan job.
     Target is validated against project scopes before the job is accepted.
     Only approved modules are allowed.
     """
+    require_owned_project(payload.project_id, db, current_user)
     # Validate modules
     invalid_modules = set(payload.modules) - ALLOWED_MODULES
     if invalid_modules:
@@ -66,17 +72,24 @@ def list_scans(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """List scan jobs for a project."""
+    """List scan jobs for a project owned by the authenticated user."""
+    require_owned_project(project_id, db, current_user)
     return db.query(ScanJob).filter(
         ScanJob.project_id == project_id
     ).order_by(ScanJob.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{scan_id}", response_model=ScanResponse)
-def get_scan(scan_id: str, db: Session = Depends(get_db)):
-    """Get a single scan job."""
+def get_scan(
+    scan_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a scan job owned through its project."""
     scan = db.query(ScanJob).filter(ScanJob.id == scan_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan job not found")
+    require_owned_project(scan.project_id, db, current_user)
     return scan

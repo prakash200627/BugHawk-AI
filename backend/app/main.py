@@ -2,7 +2,7 @@
 BugHawk AI 2.0 — FastAPI Main Application
 """
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -23,6 +23,7 @@ logger = get_logger("main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup/shutdown lifecycle."""
+    settings.validate_runtime_settings()
     logger.info(
         "BugHawk AI 2.0 starting",
         version=settings.app_version,
@@ -41,9 +42,9 @@ app = FastAPI(
         "Transforms authorized security assessment results into actionable security intelligence."
     ),
     version=settings.app_version,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url=None if settings.is_production else "/api/docs",
+    redoc_url=None if settings.is_production else "/api/redoc",
+    openapi_url=None if settings.is_production else "/api/openapi.json",
     lifespan=lifespan,
 )
 
@@ -76,6 +77,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, HTTPException):
+        raise exc
     logger.error("Unhandled exception", exc_info=exc, path=str(request.url))
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -86,9 +89,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
 # Routers
 # ---------------------------------------------------------------------------
 
-from app.api import health, projects, scopes, assets, scans, findings, agents, reports, remediation
+from app.api import auth, health, projects, scopes, assets, scans, findings, agents, reports, remediation
 
 app.include_router(health.router, prefix="/api")
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(scopes.router, prefix="/api/scopes", tags=["Scopes"])
 app.include_router(assets.router, prefix="/api/assets", tags=["Assets"])
@@ -104,6 +108,6 @@ def root():
     return {
         "platform": "BugHawk AI 2.0",
         "version": settings.app_version,
-        "docs": "/api/docs",
+        "docs": None if settings.is_production else "/api/docs",
         "health": "/api/health",
     }

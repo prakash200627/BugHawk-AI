@@ -6,10 +6,11 @@ import {
   Fingerprint, Code2, Globe
 } from 'lucide-react';
 import { findingsApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { SecurityFinding, Severity } from '../types';
 import clsx from 'clsx';
 
-const DEMO_PROJECT_ID = 'demo-project-id';
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'info', 'unknown'];
 
@@ -152,9 +153,11 @@ function FindingDrawer({ finding, onClose }: { finding: SecurityFinding; onClose
                       </span>
                     </div>
                   ))}
-                <div className="text-purple-400 mt-2 pt-2 border-t border-purple-500/20">
-                  ⚠ DEMO DATA — Synthetic evidence for demonstration purposes only
-                </div>
+                {finding.is_demo && (
+                  <div className="text-purple-400 mt-2 pt-2 border-t border-purple-500/20">
+                    Demo record — this evidence was not loaded as a live scan result.
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -172,7 +175,7 @@ function FindingDrawer({ finding, onClose }: { finding: SecurityFinding; onClose
                       <span className="font-mono text-slate-300">{String(val)}</span>
                     </div>
                   ))}
-                {finding.risk_factors.note && (
+                {finding.risk_factors.note != null && (
                   <div className="text-xs text-purple-400 pt-2 border-t border-purple-500/15">
                     {String(finding.risk_factors.note)}
                   </div>
@@ -216,6 +219,7 @@ function FindingDrawer({ finding, onClose }: { finding: SecurityFinding; onClose
 }
 
 export default function FindingsPage() {
+  const { projectId } = useSession();
   const [findings, setFindings] = useState<SecurityFinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState<string>('all');
@@ -225,20 +229,21 @@ export default function FindingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchFindings = useCallback(async () => {
+    if (!projectId) { setFindings([]); setLoading(false); return; }
     try {
       setError(null);
       const params: Record<string, string> = {};
       if (severityFilter !== 'all') params.severity = severityFilter;
       if (statusFilter !== 'all') params.validation_status = statusFilter;
       if (search) params.search = search;
-      const res = await findingsApi.list(DEMO_PROJECT_ID, params);
+      const res = await findingsApi.list(projectId, params);
       setFindings(res.data);
     } catch {
       setError('Could not load findings. Ensure backend is running and demo data is seeded.');
     } finally {
       setLoading(false);
     }
-  }, [severityFilter, statusFilter, search]);
+  }, [severityFilter, statusFilter, search, projectId]);
 
   useEffect(() => {
     const timer = setTimeout(fetchFindings, 300);
@@ -249,6 +254,8 @@ export default function FindingsPage() {
     acc[f.effective_severity] = (acc[f.effective_severity] || 0) + 1;
     return acc;
   }, {});
+
+  if (!projectId) return <NoProject />;
 
   return (
     <div className="space-y-5 animate-fade-in">

@@ -4,10 +4,11 @@ import {
   Copy, FlaskConical, Loader2, AlertTriangle, Code2
 } from 'lucide-react';
 import { remediationApi, findingsApi } from '../lib/api';
+import { useSession } from '../lib/session';
+import NoProject from '../components/NoProject';
 import type { RemediationSuggestion, SecurityFinding } from '../types';
 import clsx from 'clsx';
 
-const DEMO_PROJECT_ID = 'demo-project-id';
 
 const STATUS_OPTIONS = ['pending', 'accepted', 'in_progress', 'completed', 'wont_fix'];
 
@@ -184,14 +185,16 @@ function RemediationCard({ finding, remediation, onStatusChange }: {
 }
 
 export default function RemediationPage() {
+  const { projectId } = useSession();
   const [findings, setFindings] = useState<SecurityFinding[]>([]);
   const [remediations, setRemediations] = useState<Record<string, RemediationSuggestion | null>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
   const loadData = useCallback(async () => {
+    if (!projectId) { setFindings([]); setLoading(false); return; }
     try {
-      const res = await findingsApi.list(DEMO_PROJECT_ID, {});
+      const res = await findingsApi.list(projectId, {});
       const fList: SecurityFinding[] = res.data;
       setFindings(fList);
       // Fetch remediation for each finding
@@ -205,7 +208,7 @@ export default function RemediationPage() {
       setRemediations(remMap);
     } catch {}
     finally { setLoading(false); }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -232,6 +235,8 @@ export default function RemediationPage() {
     accepted: Object.values(remediations).filter(r => r?.status === 'accepted').length,
     completed: Object.values(remediations).filter(r => r?.status === 'completed').length,
   };
+
+  if (!projectId) return <NoProject />;
 
   return (
     <div className="space-y-5 animate-fade-in">
