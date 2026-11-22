@@ -1,0 +1,23 @@
+id: bughawk-missing-csp
+
+info:
+  name: Content-Security-Policy header is absent
+  author: bughawk
+  severity: info
+  description: A reviewed header check. The response did not include Content-Security-Policy. This is an observation, not a confirmed vulnerability.
+  tags: misconfig,headers
+  metadata:
+    max-request: 1
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    redirects: false
+    max-redirects: 0
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "content-security-policy"
+        negative: true

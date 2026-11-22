@@ -3,7 +3,7 @@ import {
   Wrench, CheckCircle, Clock, XCircle, ChevronDown, ChevronRight,
   Copy, FlaskConical, Loader2, AlertTriangle, Code2
 } from 'lucide-react';
-import { remediationApi, findingsApi } from '../lib/api';
+import { apiErrorMessage, remediationApi, findingsApi } from '../lib/api';
 import { useSession } from '../lib/session';
 import NoProject from '../components/NoProject';
 import type { RemediationSuggestion, SecurityFinding } from '../types';
@@ -31,6 +31,7 @@ function RemediationCard({ finding, remediation, onStatusChange }: {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [statusError, setStatusError] = useState('');
 
   const copyCode = async () => {
     if (remediation?.secure_code_example) {
@@ -43,10 +44,13 @@ function RemediationCard({ finding, remediation, onStatusChange }: {
   const changeStatus = async (status: string) => {
     if (!remediation) return;
     setUpdating(true);
+    setStatusError('');
     try {
       await remediationApi.updateStatus(remediation.id, status);
       onStatusChange(remediation.id, status);
-    } catch {}
+    } catch (err: unknown) {
+      setStatusError(apiErrorMessage(err, 'Status was not saved.'));
+    }
     finally { setUpdating(false); }
   };
 
@@ -86,8 +90,8 @@ function RemediationCard({ finding, remediation, onStatusChange }: {
           {!remediation ? (
             <div className="text-center py-8 text-slate-400 text-sm">
               <Wrench size={24} className="mx-auto mb-2 text-slate-600" />
-              <p>No remediation suggestion available yet.</p>
-              <p className="text-xs text-slate-500 mt-1">Run AI Analysis on this finding to generate guidance.</p>
+              <p>No remediation suggestion is stored for this finding.</p>
+              <p className="text-xs text-slate-500 mt-1">This page does not generate new guidance.</p>
             </div>
           ) : (
             <>
@@ -175,6 +179,7 @@ function RemediationCard({ finding, remediation, onStatusChange }: {
                   ))}
                 </div>
                 {updating && <Loader2 size={14} className="text-cyber-blue animate-spin" />}
+                {statusError && <span className="text-xs text-red-400">{statusError}</span>}
               </div>
             </>
           )}
@@ -190,6 +195,7 @@ export default function RemediationPage() {
   const [remediations, setRemediations] = useState<Record<string, RemediationSuggestion | null>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [error, setError] = useState('');
 
   const loadData = useCallback(async () => {
     if (!projectId) { setFindings([]); setLoading(false); return; }
@@ -206,7 +212,11 @@ export default function RemediationPage() {
         } catch { remMap[f.id] = null; }
       }));
       setRemediations(remMap);
-    } catch {}
+      setError('');
+    } catch (err: unknown) {
+      setFindings([]);
+      setError(apiErrorMessage(err, 'Remediation records could not be loaded.'));
+    }
     finally { setLoading(false); }
   }, [projectId]);
 
@@ -240,7 +250,12 @@ export default function RemediationPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="demo-banner"><FlaskConical size={12} />Remediation Center — Demo project · AI-generated guidance · Do NOT apply to production automatically</div>
+      <div className="demo-banner"><FlaskConical size={12} />Stored suggestions for the selected project. Status changes are saved. New guidance is not generated here.</div>
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          <AlertTriangle size={12} />{error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -277,7 +292,7 @@ export default function RemediationPage() {
       {/* Warning */}
       <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-orange-500/8 border border-orange-500/20 text-xs text-orange-300">
         <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-        <span><strong>Important:</strong> Remediation suggestions are AI-generated guidance. Always review with your team and test in a staging environment before applying to production. BugHawk AI never modifies application source code automatically.</span>
+        <span>Review any stored suggestion before using it. This application does not change source code.</span>
       </div>
 
       {/* Cards */}

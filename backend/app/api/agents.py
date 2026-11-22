@@ -3,14 +3,14 @@ BugHawk AI 2.0 — AI Agents API
 Provides endpoints for AI analyst chat and finding analysis.
 In demo mode, returns structured mock responses that demonstrate the system's capabilities.
 """
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
-from app.api.deps import get_current_user, require_owned_finding, require_owned_project
+from app.api.deps import require_owned_finding, require_owned_project, require_writer
 from app.database.session import get_db
-from app.models import SecurityFinding, AgentExecution, AgentStatus, User
+from app.models import AgentExecution, AgentStatus, User
 from app.schemas import (
     AgentChatRequest, AgentChatResponse,
     AgentAnalyzeRequest, AgentAnalyzeResponse
@@ -142,7 +142,7 @@ def _get_demo_response(messages: List) -> str:
 def agent_chat(
     payload: AgentChatRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """
     Conversational AI security analyst.
@@ -196,11 +196,11 @@ def agent_chat(
 
     # Production: would call LangGraph agent (implemented in Milestone 4)
     execution.status = AgentStatus.FAILED
-    execution.error_message = "LLM provider not configured. Set LLM_PROVIDER in environment."
+    execution.error_message = "Live analyst is not connected."
     db.commit()
     raise HTTPException(
         status_code=503,
-        detail="AI analysis requires LLM configuration. See .env.example for setup instructions."
+        detail="Analyst responses are unavailable. Demo mode returns canned text. A live model is not connected.",
     )
 
 
@@ -209,7 +209,7 @@ def analyze_finding(
     finding_id: str,
     payload: AgentAnalyzeRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """
     Deep AI analysis of a specific finding.
@@ -272,9 +272,9 @@ def analyze_finding(
         )
 
     execution.status = AgentStatus.FAILED
-    execution.error_message = "LLM provider not configured."
+    execution.error_message = "Live analyst is not connected."
     db.commit()
     raise HTTPException(
         status_code=503,
-        detail="AI analysis requires LLM configuration."
+        detail="Analyst responses are unavailable. Demo mode returns canned text. A live model is not connected.",
     )

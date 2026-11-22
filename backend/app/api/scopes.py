@@ -5,7 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_owned_project
+from app.api.deps import get_current_user, require_owned_project, require_writer
 from app.database.session import get_db
 from app.models import AuthorizedScope, User
 from app.schemas import ScopeCreate, ScopeResponse, ScopeValidateRequest, ScopeValidateResponse
@@ -17,7 +17,7 @@ router = APIRouter()
 def _get_project_scopes(project_id: str, db: Session) -> List[str]:
     scopes = db.query(AuthorizedScope).filter(
         AuthorizedScope.project_id == project_id,
-        AuthorizedScope.is_active == True
+        AuthorizedScope.is_active.is_(True)
     ).all()
     return [s.scope_value for s in scopes]
 
@@ -27,7 +27,7 @@ def add_scope(
     project_id: str,
     payload: ScopeCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """Add an authorized scope to a project owned by the authenticated user."""
     require_owned_project(project_id, db, current_user)
@@ -58,7 +58,7 @@ def list_scopes(
     require_owned_project(project_id, db, current_user)
     return db.query(AuthorizedScope).filter(
         AuthorizedScope.project_id == project_id,
-        AuthorizedScope.is_active == True,
+        AuthorizedScope.is_active.is_(True),
     ).all()
 
 
@@ -74,7 +74,7 @@ def validate_target(
     """
     require_owned_project(payload.project_id, db, current_user)
     scope_strings = _get_project_scopes(payload.project_id, db)
-    guardian = ScopeGuardian(scope_strings)
+    guardian = ScopeGuardian.from_scope_values(scope_strings)
     result = guardian.validate(payload.target)
 
     return ScopeValidateResponse(
@@ -91,7 +91,7 @@ def validate_target(
 def delete_scope(
     scope_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """Deactivate a scope rule on a project owned by the authenticated user."""
     scope = db.query(AuthorizedScope).filter(AuthorizedScope.id == scope_id).first()

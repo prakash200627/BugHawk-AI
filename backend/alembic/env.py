@@ -17,11 +17,15 @@ import app.models  # noqa: F401 — registers all models with Base.metadata
 # This is the Alembic Config object
 config = context.config
 
-# Override sqlalchemy.url from environment if set
-database_url = os.environ.get("DATABASE_URL")
-if database_url:
-    # ConfigParser treats "%" as interpolation. Escape a percent-encoded URL.
-    config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
+# The ini file has no database URL. Refuse to continue without DATABASE_URL,
+# and do not print the URL.
+database_url = os.environ.get("DATABASE_URL", "").strip()
+if not database_url:
+    raise RuntimeError(
+        "DATABASE_URL is required. Alembic does not keep a database URL in alembic.ini."
+    )
+# ConfigParser treats "%" as interpolation. Escape a percent-encoded URL.
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:

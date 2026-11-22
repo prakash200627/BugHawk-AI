@@ -101,6 +101,42 @@ export interface ScanJob {
   error_message?: string;
   is_demo: boolean;
   created_at: string;
+  result_summary?: {
+    module: string;
+    passive?: boolean;
+    service_discovery?: boolean;
+    discovered?: number;
+    stored?: number;
+    duplicates?: number;
+    rejected_out_of_scope?: number;
+    hostnames?: string[];
+    probed?: number;
+    updated?: number;
+    skipped_over_limit?: number;
+    findings?: number;
+    informational?: number;
+    potential?: number;
+    coverage?: string;
+    source_analysis?: boolean;
+    passive_baseline?: boolean;
+    prerequisite_missing?: boolean;
+    results?: Array<{
+      hostname?: string;
+      url?: string;
+      status_code?: number;
+      title?: string;
+      webserver?: string;
+      technologies?: string[];
+      template_id?: string;
+      severity?: string;
+      classification?: string;
+      rule_id?: string;
+      path?: string;
+      line?: number;
+      plugin_id?: string;
+      risk?: string;
+    }>;
+  } | null;
 }
 
 // ============================================================

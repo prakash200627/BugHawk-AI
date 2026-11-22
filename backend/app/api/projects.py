@@ -1,12 +1,12 @@
 """
 BugHawk AI 2.0 — Projects API
 """
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.api.deps import get_current_user, require_owned_project
+from app.api.deps import get_current_user, require_owned_project, require_writer
 from app.database.session import get_db
 from app.models import Project, SecurityFinding, Asset, Severity, User
 from app.schemas import ProjectCreate, ProjectUpdate, ProjectResponse
@@ -34,7 +34,7 @@ def _enrich_project(db: Session, project: Project) -> ProjectResponse:
 def create_project(
     payload: ProjectCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """Create a project owned by the authenticated user."""
     project = Project(
@@ -58,7 +58,7 @@ def list_projects(
     """List projects owned by the authenticated user."""
     projects = db.query(Project).filter(
         Project.owner_id == current_user.id,
-        Project.is_active == True,
+        Project.is_active.is_(True),
     ).offset(skip).limit(limit).all()
     return [_enrich_project(db, p) for p in projects]
 
@@ -79,7 +79,7 @@ def update_project(
     project_id: str,
     payload: ProjectUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """Update a project owned by the authenticated user."""
     project = require_owned_project(project_id, db, current_user)

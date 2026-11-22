@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
 from app.database.session import get_db
-from app.models import Project, SecurityFinding, User
+from app.models import Project, SecurityFinding, User, UserRole
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -31,6 +31,20 @@ def get_current_user(
     if user is None or not user.is_active:
         raise unauthorized
     return user
+
+
+def require_writer(current_user: User = Depends(get_current_user)) -> User:
+    """Allow analyst and admin writes. Viewers and unknown roles cannot change records.
+
+    The role is read from the user row. A role claim inside the token is ignored.
+    Admin does not bypass project ownership checks.
+    """
+    if current_user.role not in (UserRole.ADMIN, UserRole.ANALYST):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Viewers have read-only access",
+        )
+    return current_user
 
 
 def require_owned_project(project_id: str, db: Session, user: User) -> Project:

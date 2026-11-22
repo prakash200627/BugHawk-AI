@@ -1,0 +1,6 @@
+rules:
+  - id: bughawk-javascript-eval
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: A call to eval was found. This is a potential static finding, not a confirmed vulnerability.
+    pattern: eval(...)

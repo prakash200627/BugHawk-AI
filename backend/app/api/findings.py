@@ -2,15 +2,15 @@
 BugHawk AI 2.0 — Findings API
 """
 import hashlib
-import json
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.api.deps import get_current_user, require_owned_finding, require_owned_project
+from app.api.deps import get_current_user, require_owned_finding, require_owned_project, require_writer
 from app.database.session import get_db
-from app.models import SecurityFinding, Asset, Severity, ValidationStatus, ConfidenceLevel, User
+from app.models import SecurityFinding, ScanJob, Severity, ValidationStatus, ConfidenceLevel, User
+from app.core.enums import require_enum
 from app.schemas import FindingImportRequest, FindingResponse, MessageResponse, DashboardStats
 
 router = APIRouter()
@@ -23,30 +23,43 @@ def _compute_finding_hash(title: str, endpoint: Optional[str], asset_id: Optiona
 
 
 def _map_severity(raw: str) -> Severity:
-    mapping = {
-        "critical": Severity.CRITICAL,
-        "high": Severity.HIGH,
-        "medium": Severity.MEDIUM,
-        "low": Severity.LOW,
-        "info": Severity.INFO,
-        "informational": Severity.INFO,
-    }
-    return mapping.get(raw.lower().strip(), Severity.UNKNOWN)
+    if (raw or "").strip().lower() == "informational":
+        return Severity.INFO
+    return require_enum(Severity, raw)
+
+
+def resolve_scan_for_import(db: Session, user: User, project_id: str, scan_job_id: Optional[str]):
+    """Return the scan when it belongs to this user and project.
+
+    A missing id means the import is not attached to a scan. Any other id
+    must exist, be owned by the caller, and use the same project. Nothing
+    is written when this raises.
+    """
+    if not scan_job_id:
+        return None
+    scan = db.query(ScanJob).filter(ScanJob.id == scan_job_id).first()
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan job not found")
+    require_owned_project(scan.project_id, db, user)
+    if scan.project_id != project_id:
+        raise HTTPException(status_code=403, detail="Scan job does not belong to this project")
+    return scan
 
 
 @router.post("/import", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 def import_findings(
     payload: FindingImportRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """Import scanner findings. Deduplication is applied automatically."""
     require_owned_project(payload.project_id, db, current_user)
+    resolve_scan_for_import(db, current_user, payload.project_id, payload.scan_job_id)
+    severities = [_map_severity(item.severity) for item in payload.findings]
     imported = 0
     duplicates = 0
 
-    for item in payload.findings:
-        severity = _map_severity(item.severity)
+    for item, severity in zip(payload.findings, severities):
         finding_hash = _compute_finding_hash(item.title, item.endpoint, None)
 
         # Check for duplicate by hash in this project
@@ -104,9 +117,11 @@ def list_findings(
     q = db.query(SecurityFinding).filter(SecurityFinding.project_id == project_id)
 
     if severity:
-        q = q.filter(SecurityFinding.effective_severity == severity)
+        q = q.filter(SecurityFinding.effective_severity == require_enum(Severity, severity))
     if validation_status:
-        q = q.filter(SecurityFinding.validation_status == validation_status)
+        q = q.filter(
+            SecurityFinding.validation_status == require_enum(ValidationStatus, validation_status)
+        )
     if source_tool:
         q = q.filter(SecurityFinding.source_tool == source_tool)
     if search:
@@ -151,7 +166,7 @@ def get_dashboard_stats(
 
     pending_review = db.query(func.count(SecurityFinding.id)).filter(
         SecurityFinding.project_id == project_id,
-        SecurityFinding.needs_human_review == True,
+        SecurityFinding.needs_human_review.is_(True),
     ).scalar() or 0
 
     total_scans = db.query(func.count(ScanJob.id)).filter(ScanJob.project_id == project_id).scalar() or 0

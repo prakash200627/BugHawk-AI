@@ -3,7 +3,7 @@ import {
   FileText, Download, Plus, Loader2, FlaskConical,
   CheckCircle, Clock, AlertTriangle, FileJson, FileDown
 } from 'lucide-react';
-import { reportsApi } from '../lib/api';
+import { apiErrorMessage, reportsApi } from '../lib/api';
 import { useSession } from '../lib/session';
 import NoProject from '../components/NoProject';
 import type { SecurityReport } from '../types';
@@ -38,8 +38,8 @@ export default function ReportsPage() {
         format: 'json',
       });
       await fetchReports();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to generate report.');
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'The report was not generated.'));
     } finally { setGenerating(false); }
   };
 
@@ -52,17 +52,19 @@ export default function ReportsPage() {
       a.download = `${report.title.replace(/\s+/g, '_')}.json`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch { alert('Download failed. Ensure backend is running.'); }
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'Download failed. PDF and HTML files are not produced.'));
+    }
   };
 
   // Report sections for the preview
   const REPORT_SECTIONS = [
     { label: 'Executive Summary', desc: 'High-level risk posture and key findings overview' },
     { label: 'Assessment Scope', desc: 'Authorized targets and scope rules' },
-    { label: 'Methodology', desc: 'Tools used, scan modules, and AI analysis approach' },
-    { label: 'Assets Assessed', desc: 'Discovered and live assets within scope' },
-    { label: 'Findings', desc: 'All vulnerabilities with evidence and severity' },
-    { label: 'Risk Prioritization', desc: 'AI risk scoring and prioritization rationale' },
+    { label: 'Methodology', desc: 'Text stored with the JSON report' },
+    { label: 'Assets Assessed', desc: 'Asset rows stored for the project' },
+    { label: 'Findings', desc: 'Stored findings and their recorded severity' },
+    { label: 'Risk Prioritization', desc: 'Counts from stored findings' },
     { label: 'Remediation', desc: 'Fix guidance and secure code examples' },
     { label: 'Limitations', desc: 'Scope boundaries and assessment constraints' },
     { label: 'Timestamp & Attribution', desc: 'Assessment date, platform version, and analyst notes' },
@@ -73,12 +75,12 @@ export default function ReportsPage() {
   return (
     <div className="space-y-5 animate-fade-in">
       {/* Demo banner */}
-      <div className="demo-banner"><FlaskConical size={12} />Reports — Demo project · JSON export available · PDF requires paid plan</div>
+      <div className="demo-banner"><FlaskConical size={12} />JSON reports from stored records. PDF and HTML are not available.</div>
 
       {/* Header action */}
       <div className="flex justify-between items-center">
         <div>
-          <p className="text-sm text-slate-400">Generate professional security assessment reports with evidence, findings, and remediation guidance.</p>
+          <p className="text-sm text-slate-400">Generate a JSON report from records already stored for this project.</p>
         </div>
         <button
           onClick={generateReport}
@@ -95,7 +97,7 @@ export default function ReportsPage() {
       <div className="card p-5">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
           <FileText size={14} className="text-cyber-blue" />
-          Report Structure
+          JSON report outline
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {REPORT_SECTIONS.map((s, i) => (

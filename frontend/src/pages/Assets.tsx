@@ -4,7 +4,7 @@ import {
   XCircle, HelpCircle, Globe, ExternalLink, FlaskConical,
   RefreshCw, X, AlertCircle,
 } from 'lucide-react';
-import { assetsApi } from '../lib/api';
+import { apiErrorMessage, assetsApi } from '../lib/api';
 import { useSession } from '../lib/session';
 import NoProject from '../components/NoProject';
 import type { Asset, AssetStatus } from '../types';
@@ -119,8 +119,7 @@ function ImportModal({ onClose, onImport }: ImportModalProps) {
       await onImport(jsonText);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Import failed.';
-      setError(msg);
+      setError(apiErrorMessage(err, 'Import failed.'));
     } finally {
       setLoading(false);
     }
@@ -180,7 +179,7 @@ function ImportModal({ onClose, onImport }: ImportModalProps) {
           {/* Schema hint */}
           <div className="text-xs text-slate-600 space-y-1">
             <p className="font-medium text-slate-500">Required fields per asset object:</p>
-            <code className="text-slate-500">hostname, asset_type, status</code>
+            <code className="text-slate-500">hostname and asset_type. Status is assigned by the server.</code>
           </div>
         </div>
 
@@ -295,9 +294,9 @@ export default function AssetsPage() {
             <Upload size={15} />
             Import JSON
           </button>
-          <button className="btn-primary flex items-center gap-2">
+          <button type="button" disabled title="Single-asset entry is not available. Use Import JSON." className="btn-primary flex items-center gap-2 opacity-60 cursor-not-allowed">
             <Plus size={15} />
-            Add Asset
+            Add Asset unavailable
           </button>
         </div>
       </div>
@@ -396,9 +395,7 @@ export default function AssetsPage() {
                   <Upload size={12} /> Import JSON
                 </button>
                 <span className="text-slate-600 text-xs">or</span>
-                <button className="btn-primary text-xs flex items-center gap-1.5">
-                  <Plus size={12} /> Add Asset
-                </button>
+                <span className="text-xs text-slate-500">Single-asset entry is not available.</span>
               </div>
             )}
           </div>

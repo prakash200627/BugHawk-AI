@@ -3,9 +3,19 @@ BugHawk AI 2.0 — Structured Logging
 Uses structlog for JSON-formatted, context-aware log output.
 """
 import logging
+import re
 import sys
 import structlog
 from app.config import settings
+
+_CONNECTION_URL = re.compile(
+    r"(?i)\b(?:postgres(?:ql)?|mysql|mariadb|mongodb|redis|amqp|rediss)(?:\+[a-z0-9]+)?://\S+"
+)
+
+
+def redact_connection_urls(value: str) -> str:
+    """Remove database and broker URLs, including any userinfo, from a log string."""
+    return _CONNECTION_URL.sub(lambda match: match.group(0).split("://", 1)[0] + "://redacted", value)
 
 
 def configure_logging() -> None:

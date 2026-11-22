@@ -1,0 +1,23 @@
+id: bughawk-missing-hsts
+
+info:
+  name: Strict-Transport-Security header is absent
+  author: bughawk
+  severity: info
+  description: A reviewed header check. The response did not include Strict-Transport-Security. This is an observation, not a confirmed vulnerability.
+  tags: misconfig,headers
+  metadata:
+    max-request: 1
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    redirects: false
+    max-redirects: 0
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "strict-transport-security"
+        negative: true

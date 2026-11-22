@@ -127,7 +127,7 @@ export default function AttackPathsPage() {
       <div className="card p-4 flex flex-wrap gap-6 text-xs">
         <div className="flex items-center gap-2 font-medium text-slate-300">
           <div className="w-8 h-0.5 bg-cyber-blue" />
-          <span>Confirmed relationship (scanner evidence)</span>
+          <span>Sample link in this illustration</span>
         </div>
         <div className="flex items-center gap-2 font-medium text-slate-300">
           <div className="w-8 h-0.5 bg-cyber-orange border-dashed" style={{ borderTop: '2px dashed #f97316', background: 'none' }} />
@@ -143,8 +143,7 @@ export default function AttackPathsPage() {
       <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-orange-500/8 border border-orange-500/20 text-xs text-orange-300">
         <Info size={14} className="flex-shrink-0 mt-0.5" />
         <span>
-          <strong>Important:</strong> Dashed orange edges represent <em>hypothetical</em> attack paths derived from vulnerability correlation.
-          They do not represent confirmed exploitation chains. All active testing requires explicit authorization.
+          This graph is a fixed illustration. Dashed edges are sample paths, not confirmed exploits and not records from the selected project.
         </span>
       </div>
 

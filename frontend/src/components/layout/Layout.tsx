@@ -7,15 +7,15 @@ import { useLocation } from 'react-router-dom';
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/': { title: 'Overview', subtitle: 'Security intelligence dashboard' },
   '/assets': { title: 'Asset Inventory', subtitle: 'Discovered and authorized assets' },
-  '/scans': { title: 'Scan Management', subtitle: 'Configure and monitor security scans' },
-  '/findings': { title: 'Vulnerability Intelligence', subtitle: 'Evidence-grounded security findings' },
-  '/analyst': { title: 'AI Security Analyst', subtitle: 'AI-powered vulnerability analysis and Q&A' },
-  '/attack-paths': { title: 'Attack Path Analysis', subtitle: 'Visualize vulnerability relationships' },
-  '/remediation': { title: 'Remediation Center', subtitle: 'Actionable fix guidance' },
-  '/reports': { title: 'Reports', subtitle: 'Generate professional security reports' },
-  '/agents': { title: 'Agent Activity', subtitle: 'Multi-agent AI orchestration log' },
+  '/scans': { title: 'Scan Management', subtitle: 'Scanners run in the worker. Semgrep waits for a source archive.' },
+  '/findings': { title: 'Vulnerability Intelligence', subtitle: 'Findings stored for the selected project' },
+  '/analyst': { title: 'AI Security Analyst', subtitle: 'Canned replies in demo mode. Otherwise unavailable.' },
+  '/attack-paths': { title: 'Attack Path Analysis', subtitle: 'Illustration. Not loaded from this account.' },
+  '/remediation': { title: 'Remediation Center', subtitle: 'Stored suggestions and status updates' },
+  '/reports': { title: 'Reports', subtitle: 'JSON reports from stored records' },
+  '/agents': { title: 'Agent Activity', subtitle: 'Illustration. Not an execution log.' },
   '/scope': { title: 'Scope Management', subtitle: 'Authorized assessment targets' },
-  '/settings': { title: 'Settings', subtitle: 'Platform configuration' },
+  '/settings': { title: 'Settings', subtitle: 'Display only. Changes are not saved.' },
 };
 
 export default function Layout() {

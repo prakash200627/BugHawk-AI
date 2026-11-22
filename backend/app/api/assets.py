@@ -2,14 +2,14 @@
 BugHawk AI 2.0 — Assets API
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 
-from app.api.deps import get_current_user, require_owned_project
+from app.api.deps import get_current_user, require_owned_project, require_writer
 from app.database.session import get_db
-from app.models import Asset, AuthorizedScope, User
-from app.schemas import AssetCreate, AssetResponse, AssetImportRequest, MessageResponse
+from app.models import Asset, AuthorizedScope, AssetStatus, AssetType, User
+from app.schemas import AssetResponse, AssetImportRequest, MessageResponse
+from app.core.enums import require_enum
 from app.core.scope_guard import ScopeGuardian
 
 router = APIRouter()
@@ -19,10 +19,10 @@ def _validate_asset_scope(hostname: str, project_id: str, db: Session) -> bool:
     """Check asset hostname against project scopes."""
     scopes = db.query(AuthorizedScope).filter(
         AuthorizedScope.project_id == project_id,
-        AuthorizedScope.is_active == True
+        AuthorizedScope.is_active.is_(True)
     ).all()
     scope_strings = [s.scope_value for s in scopes]
-    guardian = ScopeGuardian(scope_strings)
+    guardian = ScopeGuardian.from_scope_values(scope_strings)
     return guardian.validate(hostname).is_allowed
 
 
@@ -40,7 +40,7 @@ def list_assets(
     require_owned_project(project_id, db, current_user)
     q = db.query(Asset).filter(Asset.project_id == project_id)
     if status:
-        q = q.filter(Asset.status == status)
+        q = q.filter(Asset.status == require_enum(AssetStatus, status))
     if search:
         q = q.filter(Asset.hostname.ilike(f"%{search}%"))
     return q.offset(skip).limit(limit).all()
@@ -50,7 +50,7 @@ def list_assets(
 def import_assets(
     payload: AssetImportRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """
     Import a batch of assets for a project.
@@ -66,12 +66,16 @@ def import_assets(
     from app.models import AuthorizedScope
     scopes = db.query(AuthorizedScope).filter(
         AuthorizedScope.project_id == payload.project_id,
-        AuthorizedScope.is_active == True,
+        AuthorizedScope.is_active.is_(True),
     ).all()
     scope_strings = [s.scope_value for s in scopes]
-    guardian = ScopeGuardian(scope_strings)
+    guardian = ScopeGuardian.from_scope_values(scope_strings)
+    typed_assets = [
+        (item, require_enum(AssetType, item.asset_type or "subdomain"))
+        for item in payload.assets
+    ]
 
-    for item in payload.assets:
+    for item, asset_type in typed_assets:
         # Check for existing asset
         existing = db.query(Asset).filter(
             Asset.project_id == payload.project_id,
@@ -92,7 +96,7 @@ def import_assets(
         asset = Asset(
             project_id=payload.project_id,
             hostname=item.hostname.lower().strip(),
-            asset_type=item.asset_type or "subdomain",
+            asset_type=asset_type,
             ip_addresses=item.ip_addresses,
             technologies=item.technologies,
             http_status_code=item.http_status_code,

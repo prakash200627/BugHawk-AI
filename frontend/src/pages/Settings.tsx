@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Settings, Zap, Bot, Shield, Wrench, Database, Key,
-  Eye, EyeOff, Save, FlaskConical, Info
+  Settings, Bot, Shield, Wrench, Database, Key,
+  Save, FlaskConical, Info
 } from 'lucide-react';
-import clsx from 'clsx';
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -29,142 +28,108 @@ function FieldRow({ label, desc, children }: { label: string; desc?: string; chi
 }
 
 export default function SettingsPage() {
-  const [showKey, setShowKey] = useState(false);
-  const [demoMode, setDemoMode] = useState(true);
-  const [llmProvider, setLlmProvider] = useState('demo');
-
   return (
     <div className="space-y-5 max-w-3xl animate-fade-in">
       <div className="demo-banner">
         <FlaskConical size={12} />
-        Settings — Display only. Server configuration is set with environment variables. This page does not change them and does not show live connection status.
+        Display only. Nothing on this page is saved. Server configuration stays in environment variables.
       </div>
 
-      {/* General */}
       <Section title="General" icon={<Settings size={14} className="text-cyber-blue" />}>
-        <FieldRow label="Platform Name" desc="Displayed in reports and UI">
+        <FieldRow label="Platform Name" desc="Shown in the interface">
           <input className="input text-sm" defaultValue="BugHawk AI 2.0" readOnly />
         </FieldRow>
         <FieldRow label="Environment" desc="Current deployment environment">
           <div className="flex items-center gap-2">
-            <span className="badge badge-demo">server-configured</span>
-            <span className="text-xs text-slate-500">Set via APP_ENV. This page does not read it.</span>
+            <span className="badge badge-demo">not loaded</span>
+            <span className="text-xs text-slate-500">APP_ENV is read by the server. This page does not fetch it.</span>
           </div>
         </FieldRow>
-        <FieldRow label="Demo Mode" desc="Uses synthetic data, no real LLM calls">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={demoMode}
-              onChange={e => setDemoMode(e.target.checked)}
-              className="sr-only peer"
-              id="demo-mode-toggle"
-            />
-            <div className="w-11 h-6 bg-navy-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyber-blue border border-cyber-blue/20" />
-            <span className="ml-2 text-sm text-slate-300">{demoMode ? 'Enabled' : 'Disabled'}</span>
+        <FieldRow label="Demo Mode" desc="Server setting. This control cannot change it.">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-400">
+            <input type="checkbox" disabled className="accent-cyber-blue" />
+            Unavailable here
           </label>
         </FieldRow>
       </Section>
 
-      {/* AI Provider */}
       <Section title="AI Provider" icon={<Bot size={14} className="text-cyber-purple" />}>
-        <div className="flex items-start gap-2 text-xs text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 mb-2">
+        <div className="flex items-start gap-2 text-xs text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
           <Info size={12} className="flex-shrink-0 mt-0.5" />
-          Configure via <code className="font-mono mx-1">LLM_PROVIDER</code> and <code className="font-mono">LLM_API_KEY</code> environment variables in your <code className="font-mono">.env</code> file.
+          Provider and model are server environment values. Selecting a name here does not connect a model.
         </div>
-        <FieldRow label="Provider" desc="LLM backend for AI agents">
+        <FieldRow label="Provider" desc="Not editable in the browser">
           <div className="flex flex-wrap gap-2">
             {['demo', 'openai', 'anthropic', 'google'].map(p => (
               <button
                 key={p}
-                onClick={() => setLlmProvider(p)}
-                className={clsx(
-                  'px-3 py-1.5 rounded-lg border text-xs font-medium transition-all',
-                  llmProvider === p
-                    ? 'bg-cyber-blue/20 border-cyber-blue/40 text-cyber-blue-bright'
-                    : 'bg-navy-900 border-navy-700 text-slate-400 hover:text-slate-200'
-                )}
-                id={`provider-${p}`}
+                type="button"
+                disabled
+                className="px-3 py-1.5 rounded-lg border text-xs font-medium bg-navy-900 border-navy-700 text-slate-500 cursor-not-allowed"
               >
                 {p.charAt(0).toUpperCase() + p.slice(1)}
-                {p === 'demo' && ' (no key needed)'}
               </button>
             ))}
           </div>
         </FieldRow>
-        <FieldRow label="Model" desc="e.g. gpt-4o, claude-3-5-sonnet, gemini-2.0-flash">
-          <input
-            className="input text-sm font-mono"
-            defaultValue={llmProvider === 'demo' ? 'demo-mode' : ''}
-            placeholder="e.g. gpt-4o-mini"
-            disabled={llmProvider === 'demo'}
-            id="model-input"
-          />
+        <FieldRow label="Model" desc="Not sent to the server">
+          <input className="input text-sm font-mono" value="" placeholder="Unavailable" disabled readOnly />
         </FieldRow>
-        <FieldRow label="API Key" desc="Stored in .env, never logged">
+        <FieldRow label="API Key" desc="Keys are not entered or stored in the browser">
           <div className="relative">
             <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
-              type={showKey ? 'text' : 'password'}
-              className="input pl-9 pr-10 text-sm font-mono"
-              placeholder={llmProvider === 'demo' ? 'Not required in demo mode' : 'sk-...'}
-              disabled={llmProvider === 'demo'}
-              id="api-key-input"
+              type="password"
+              className="input pl-9 text-sm font-mono"
+              placeholder="Not collected on this page"
+              disabled
+              readOnly
             />
-            <button
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-              id="toggle-key-visibility"
-            >
-              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
           </div>
         </FieldRow>
       </Section>
 
-      {/* Security Tools */}
       <Section title="Security Tool Paths" icon={<Wrench size={14} className="text-cyber-orange" />}>
-        <div className="text-xs text-slate-500 bg-navy-900 rounded-lg p-3 mb-2">
-          Specify the paths to installed security tools. Leave blank to use system PATH.
-          Configure via environment variables: <code className="text-cyber-blue">SUBFINDER_PATH</code>, <code className="text-cyber-blue">NUCLEI_PATH</code>, <code className="text-cyber-blue">SEMGREP_PATH</code>.
-        </div>
+        <p className="text-xs text-slate-500 bg-navy-900 rounded-lg p-3">
+          Tool paths are server settings. These fields are disabled, and path checks are not available.
+        </p>
         {[
-          { key: 'SUBFINDER_PATH', label: 'Subfinder', placeholder: '/usr/local/bin/subfinder', category: 'recon' },
-          { key: 'NUCLEI_PATH',    label: 'Nuclei',    placeholder: '/usr/local/bin/nuclei',    category: 'active' },
-          { key: 'SEMGREP_PATH',   label: 'Semgrep',   placeholder: '/usr/local/bin/semgrep',   category: 'code' },
+          { key: 'SUBFINDER_PATH', label: 'Subfinder' },
+          { key: 'HTTPX_PATH', label: 'httpx' },
+          { key: 'NUCLEI_PATH', label: 'Nuclei' },
+          { key: 'SEMGREP_PATH', label: 'Semgrep' },
         ].map(tool => (
-          <FieldRow key={tool.key} label={tool.label} desc={`${tool.key} env var`}>
+          <FieldRow key={tool.key} label={tool.label} desc={`${tool.key} is not edited here`}>
             <div className="flex gap-2">
-              <input className="input text-sm font-mono flex-1" placeholder={tool.placeholder} id={`tool-${tool.label.toLowerCase()}`} />
-              <button className="btn-secondary text-xs !py-2 !px-3 whitespace-nowrap" id={`test-${tool.label.toLowerCase()}`}>Test Path</button>
+              <input className="input text-sm font-mono flex-1" placeholder="Unavailable" disabled readOnly />
+              <button type="button" disabled className="btn-secondary text-xs !py-2 !px-3 whitespace-nowrap opacity-60 cursor-not-allowed">
+                Test unavailable
+              </button>
             </div>
           </FieldRow>
         ))}
       </Section>
 
-      {/* Rate Limiting */}
       <Section title="Rate Limiting" icon={<Shield size={14} className="text-cyber-green" />}>
-        <FieldRow label="Max Requests/Second" desc="Per scan session rate limit">
-          <input type="number" className="input text-sm w-32" defaultValue="10" id="rate-limit-input" />
+        <FieldRow label="Max Requests/Second" desc="Not configured from this page">
+          <input type="text" className="input text-sm w-40" value="Unavailable" disabled readOnly />
         </FieldRow>
-        <FieldRow label="Scan Concurrency" desc="Max simultaneous scan workers">
-          <input type="number" className="input text-sm w-32" defaultValue="3" id="concurrency-input" />
+        <FieldRow label="Scan Concurrency" desc="Not configured from this page">
+          <input type="text" className="input text-sm w-40" value="Unavailable" disabled readOnly />
         </FieldRow>
       </Section>
 
-      {/* Database */}
       <Section title="Database" icon={<Database size={14} className="text-slate-400" />}>
         <FieldRow label="Connection" desc="Set with DATABASE_URL on the server">
           <p className="text-sm text-slate-400">
-            Credentials stay on the server. Use the API health check for connectivity. This page does not display a connection string or status.
+            Credentials stay on the server. This page does not display a connection string or a connection status.
           </p>
         </FieldRow>
       </Section>
 
-      {/* Save */}
       <div className="flex justify-end">
-        <button type="button" disabled className="btn-primary flex items-center gap-2 opacity-60" id="save-settings-btn">
-          <Save size={14} />Server configuration is read-only
+        <button type="button" disabled className="btn-primary flex items-center gap-2 opacity-60 cursor-not-allowed">
+          <Save size={14} />Nothing to save
         </button>
       </div>
     </div>
