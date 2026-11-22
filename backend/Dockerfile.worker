@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && chmod 755 /opt/ZAP_${ZAP_VERSION}/zap.sh \
     && rm -rf /tmp/subfinder.zip /tmp/httpx.zip /tmp/nuclei.zip /tmp/zap.tar.gz /var/lib/apt/lists/*
 
+# Production runtime, plus the pinned Semgrep program. Model libraries are not installed.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir semgrep==1.186.0

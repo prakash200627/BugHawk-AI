@@ -48,8 +48,8 @@ Security assessment output is scattered across tools, spreadsheets, and chat log
 
 - A source-upload or authorized repository connection for Semgrep. The scanner interface is present and jobs fail with that missing prerequisite.
 - Any worker other than `python -m app.workers.scan_worker`. That process runs Subfinder, httpx, Nuclei, Semgrep, and ZAP.
-- A live LangGraph or provider call. Those libraries are listed in `backend/requirements.txt` and are not imported by the application.
-- Redis use. The URL is configuration only.
+- A live LangGraph or provider call. `backend/requirements-ai.txt` lists those libraries. The application does not import them, and the API and worker images do not install them.
+- Redis and Celery. The settings exist. No application module imports either library, and they are not in the production requirements.
 - PDF or HTML rendering.
 - Risk scores, duplicate workflow, and durable scope audit rows.
 
@@ -73,7 +73,9 @@ README.md
 docker-compose.yml          optional local Compose definition; not required to deploy
 backend/
   Dockerfile                Render image
-  requirements.txt
+  requirements.txt          production API and worker runtime
+  requirements-dev.txt      production runtime plus pytest, Ruff, and TestClient's httpx
+  requirements-ai.txt       optional model libraries; not installed in the images
   alembic/                  revision 0001_initial
   app/                      FastAPI application, including cli/create_admin.py
   tests/                    scope and auth unit tests
@@ -145,10 +147,12 @@ Backend, from `backend/`, on Python 3.11:
 
 ```bash
 python -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-dev.txt
 alembic upgrade head
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
+`requirements.txt` is what the API and worker images install. `requirements-dev.txt` adds pytest, pytest-asyncio, pytest-cov, Ruff, and the `httpx` package used by FastAPI's test client. `requirements-ai.txt` is optional and is not part of either image. Installing it does not turn on a live model. The analyst path still returns canned text in demo mode and HTTP 503 otherwise.
 
 Use a disposable database in `DATABASE_URL`. Do not point that URL at a production instance. After the migration, create an account with `python -m app.cli.create_admin` in a terminal that can prompt.
 
@@ -163,7 +167,7 @@ Leave `VITE_API_BASE_URL` unset so the Vite proxy is used. `npm run build` is `t
 
 ## Testing strategy
 
-`.github/workflows/ci.yml` runs on pull requests to `main` and on pushes to `main`. It uses Ubuntu, Python 3.11, and Node.js 22. Backend installs `backend/requirements.txt`, runs Ruff, then pytest. The job sets `DATABASE_URL` to a localhost test URL and does not start PostgreSQL, because the current tests do not open a database. A test process refuses a non-local database host. Frontend runs `npm ci`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`. The workflow does not deploy and does not read repository secrets.
+`.github/workflows/ci.yml` runs on pull requests to `main` and on pushes to `main` and `release-verification`. It uses Ubuntu, Python 3.11, and Node.js 22. Backend installs `backend/requirements-dev.txt`, runs Ruff, then pytest. The job sets `DATABASE_URL` to a localhost test URL and does not start PostgreSQL, because the current tests do not open a database. A test process refuses a non-local database host. Frontend runs `npm ci`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`. A third job builds the API and worker images with separate GitHub Actions cache scopes and does not push them. The workflow does not deploy and does not read repository secrets.
 
 - `pytest` for `backend/tests`. The current tests cover Scope Guardian behavior and a few auth and health cases with a stand-in database session. They do not need the production database.
 - A later job may start an empty Postgres service and apply `0001_initial`. That database must be created by the job and destroyed with the job.

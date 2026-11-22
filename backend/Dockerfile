@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Production runtime only. Tests and optional model libraries are separate files.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
