@@ -3,7 +3,7 @@ import {
   Shield, Plus, Trash2, CheckCircle, XCircle, Loader2,
   FlaskConical, AlertTriangle, Globe, ChevronRight
 } from 'lucide-react';
-import { scopesApi } from '../lib/api';
+import { apiErrorMessage, scopesApi } from '../lib/api';
 import { useSession } from '../lib/session';
 import NoProject from '../components/NoProject';
 import type { AuthorizedScope, ScopeValidationResult } from '../types';
@@ -21,8 +21,8 @@ function AddScopeModal({ onClose, onAdded, projectId }: { onClose: () => void; o
     try {
       await scopesApi.add(projectId, form);
       onAdded(); onClose();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to add scope rule.');
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'The scope rule was not saved.'));
     } finally { setSaving(false); }
   };
 
@@ -69,13 +69,18 @@ export default function ScopePage() {
   const [validateTarget, setValidateTarget] = useState('');
   const [validationResult, setValidationResult] = useState<ScopeValidationResult | null>(null);
   const [validating, setValidating] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchScopes = useCallback(async () => {
     if (!projectId) { setScopes([]); setLoading(false); return; }
     try {
       const res = await scopesApi.list(projectId);
       setScopes(res.data);
-    } catch {}
+      setError('');
+    } catch (err: unknown) {
+      setScopes([]);
+      setError(apiErrorMessage(err, 'Scope rules could not be loaded.'));
+    }
     finally { setLoading(false); }
   }, [projectId]);
 
@@ -87,7 +92,10 @@ export default function ScopePage() {
     try {
       const res = await scopesApi.validate({ target: validateTarget, project_id: projectId });
       setValidationResult(res.data);
-    } catch { setValidationResult(null); }
+    } catch (err: unknown) {
+      setValidationResult(null);
+      setError(apiErrorMessage(err, 'The target was not checked.'));
+    }
     finally { setValidating(false); }
   };
 
@@ -95,14 +103,21 @@ export default function ScopePage() {
     try {
       await scopesApi.delete(id);
       setScopes(prev => prev.filter(s => s.id !== id));
-    } catch {}
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err, 'The scope rule was not removed.'));
+    }
   };
 
   if (!projectId) return <NoProject />;
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="demo-banner"><FlaskConical size={12} />Scope Management — Demo project · Scope Guardian enforces these rules deterministically</div>
+      <div className="demo-banner"><FlaskConical size={12} />Rules for the selected project. Scope Guardian checks a target before it is accepted.</div>
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          <AlertTriangle size={12} />{error}
+        </div>
+      )}
 
       {/* How it works */}
       <div className="card p-5">

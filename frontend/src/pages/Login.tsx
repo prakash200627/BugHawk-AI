@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { apiErrorMessage } from '../lib/api';
 import { useSession } from '../lib/session';
 
 export default function LoginPage() {
@@ -17,8 +18,8 @@ export default function LoginPage() {
     setError('');
     try {
       await login(email.trim(), password);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Sign-in failed. Use an account that already exists.');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err, 'Sign-in failed. Use an account that already exists.'));
     } finally {
       setSubmitting(false);
     }

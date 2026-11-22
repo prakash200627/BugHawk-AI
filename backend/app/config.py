@@ -42,11 +42,35 @@ class Settings(BaseSettings):
     anthropic_api_key: Optional[str] = None
     google_api_key: Optional[str] = None
 
-    # Security Tools
+    # Security Tools. The API never accepts a path from a request.
     subfinder_path: str = "subfinder"
+    subfinder_timeout_seconds: int = 120
+    subfinder_max_output_bytes: int = 1_000_000
+    httpx_path: str = "httpx"
+    httpx_timeout_seconds: int = 10
+    httpx_job_timeout_seconds: int = 180
+    httpx_threads: int = 5
+    httpx_max_assets: int = 50
+    httpx_max_output_bytes: int = 1_000_000
+    scan_worker_poll_seconds: float = 5
     nuclei_path: str = "nuclei"
+    nuclei_timeout_seconds: int = 10
+    nuclei_job_timeout_seconds: int = 180
+    nuclei_rate_limit: int = 5
+    nuclei_concurrency: int = 2
+    nuclei_bulk_size: int = 5
+    nuclei_max_targets: int = 25
+    nuclei_max_output_bytes: int = 1_000_000
     semgrep_path: str = "semgrep"
-    zap_api_url: str = "http://localhost:8080"
+    semgrep_timeout_seconds: int = 60
+    semgrep_job_timeout_seconds: int = 180
+    semgrep_max_output_bytes: int = 1_000_000
+    zap_path: str = "zap.sh"
+    zap_bind_port: int = 18080
+    zap_job_timeout_seconds: int = 180
+    zap_max_alerts: int = 50
+    zap_max_output_bytes: int = 1_000_000
+    zap_api_url: str = "http://127.0.0.1:18080"
     zap_api_key: Optional[str] = None
 
     # Rate Limiting

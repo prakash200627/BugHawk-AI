@@ -91,7 +91,7 @@ export default function AgentActivityPage() {
       {/* Workflow diagram */}
       <div className="card p-5">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <Zap size={14} className="text-cyber-blue" />LangGraph Orchestration Flow
+          <Zap size={14} className="text-cyber-blue" />Sample flow. No workflow is running.
         </h3>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {['Scope Guardian', 'Recon Agent', 'Scan Agent', 'AI Analyst', 'Triage Agent', 'Correlation Agent', 'Remediation Agent', 'Human Review', 'Report'].map((step, i, arr) => (
@@ -110,7 +110,7 @@ export default function AgentActivityPage() {
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-cyber-blue/10">
           <h3 className="text-sm font-semibold text-slate-200">Execution Log</h3>
-          <span className="text-xs text-slate-400">Most recent run — Demo project</span>
+          <span className="text-xs text-slate-400">Sample log. Not loaded from the API.</span>
         </div>
         <div className="divide-y divide-cyber-blue/5">
           {DEMO_EXECUTIONS.map((exec, i) => (

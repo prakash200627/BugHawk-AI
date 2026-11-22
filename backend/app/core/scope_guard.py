@@ -106,6 +106,14 @@ def _normalize_host(raw: str) -> Tuple[bool, str, str]:
     return True, host, ""
 
 
+def _canonical_ip(value: str) -> Optional[str]:
+    """Return the normalized IP, or None when the value is not an IP."""
+    try:
+        return str(ipaddress.ip_address(value.strip()))
+    except ValueError:
+        return None
+
+
 def _is_ip_address(host: str) -> bool:
     """Return True if host is a valid IPv4 or IPv6 address."""
     try:
@@ -167,13 +175,36 @@ class ScopeGuardian:
 
     def __init__(self, authorized_scopes: List[str], authorized_ips: Optional[Set[str]] = None):
         self.rules: List[ScopeRule] = []
-        self.authorized_ips: Set[str] = authorized_ips or set()
+        self.authorized_ips: Set[str] = set()
+        for ip in authorized_ips or set():
+            canonical = _canonical_ip(ip)
+            if canonical:
+                self.authorized_ips.add(canonical)
         self._audit_log: List[ScopeValidationResult] = []
 
         for scope_str in authorized_scopes:
             scope_str = scope_str.strip().lower()
             if scope_str:
                 self.rules.append(ScopeRule(raw=scope_str))
+
+    @classmethod
+    def from_scope_values(cls, scope_values: List[str]) -> "ScopeGuardian":
+        """Build a guardian from stored scope strings.
+
+        An exact IP scope authorizes that IP. Other values stay hostname rules.
+        """
+        hosts: List[str] = []
+        ips: Set[str] = set()
+        for raw in scope_values:
+            text = (raw or "").strip()
+            if not text:
+                continue
+            canonical = _canonical_ip(text)
+            if canonical:
+                ips.add(canonical)
+            else:
+                hosts.append(text)
+        return cls(hosts, ips)
 
     def validate(self, target: str) -> ScopeValidationResult:
         """
@@ -193,8 +224,9 @@ class ScopeGuardian:
             self._audit_log.append(result)
             return result
 
-        # Step 2: IP address check
+        # Step 2: IP address check. Only the canonical address is authorized.
         if _is_ip_address(host):
+            host = _canonical_ip(host) or host
             if host in self.authorized_ips:
                 result = ScopeValidationResult(
                     decision=ScopeDecision.ALLOWED,

@@ -9,7 +9,7 @@ from sqlalchemy import text
 
 from app.database.session import get_db
 from app.config import settings
-from app.core.logging import get_logger
+from app.core.logging import get_logger, redact_connection_urls
 from app.schemas import HealthResponse
 
 logger = get_logger("health")
@@ -32,8 +32,12 @@ def health_check(db: Session = Depends(get_db)):
     }
     try:
         db.execute(text("SELECT 1"))
-    except Exception:
-        logger.exception("database health check failed")
+    except Exception as exc:
+        logger.error(
+            "database health check failed",
+            error_type=type(exc).__name__,
+            detail=redact_connection_urls(str(exc)),
+        )
         return JSONResponse(
             status_code=503,
             content={**body, "status": "unavailable", "database": "unavailable"},

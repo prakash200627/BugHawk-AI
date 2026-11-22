@@ -10,7 +10,6 @@ from sqlalchemy import (
     String, Text, Boolean, Integer, Float, DateTime,
     ForeignKey, JSON, Enum as SAEnum, Index, UniqueConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 

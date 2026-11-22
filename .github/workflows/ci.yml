@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, release-verification]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: development
+      APP_DEBUG: "false"
+      APP_SECRET_KEY: ci-only-app-secret-not-for-production
+      JWT_SECRET_KEY: ci-only-jwt-secret-not-for-production
+      JWT_ALGORITHM: HS256
+      # Placeholder only. The tests mock the database session and do not open this URL.
+      # A PostgreSQL service is not started. Do not replace this with a production URL.
+      DATABASE_URL: postgresql://bughawk_test:bughawk_test@127.0.0.1:5432/bughawk_test
+      REDIS_URL: redis://127.0.0.1:6379/0
+      LLM_PROVIDER: demo
+      DEMO_MODE: "false"
+      ALLOWED_ORIGINS: http://localhost:5173
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install backend requirements
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check app tests
+
+      - name: Backend tests
+        run: pytest -q
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  images:
+    name: Docker images
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          load: false
+          cache-from: type=gha,scope=bughawk-api
+          cache-to: type=gha,scope=bughawk-api,mode=max
+
+      - name: Build worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile.worker
+          push: false
+          load: false
+          cache-from: type=gha,scope=bughawk-worker
+          cache-to: type=gha,scope=bughawk-worker,mode=max

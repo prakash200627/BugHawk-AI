@@ -107,4 +107,25 @@ export const reportsApi = {
     api.get(`/reports/${reportId}/download`, { responseType: 'blob' }),
 };
 
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  const data = (error as { response?: { data?: { detail?: unknown; error?: unknown } } })?.response?.data;
+  const detail = data?.detail;
+  if (typeof detail === 'string' && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail.map((item) => {
+      if (!item || typeof item !== 'object') return '';
+      const record = item as { loc?: unknown; msg?: unknown };
+      const loc = Array.isArray(record.loc)
+        ? record.loc.filter((part) => part !== 'body' && part !== 'query').map(String).join('.')
+        : '';
+      const msg = typeof record.msg === 'string' ? record.msg : '';
+      if (!msg) return '';
+      return loc ? `${loc}: ${msg}` : msg;
+    }).filter(Boolean);
+    if (parts.length > 0) return parts.join(' ');
+  }
+  if (typeof data?.error === 'string' && data.error.trim()) return data.error;
+  return fallback;
+}
+
 export default api;

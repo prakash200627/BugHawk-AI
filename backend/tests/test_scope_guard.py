@@ -4,8 +4,8 @@ BugHawk AI 2.0 — Scope Guardian Tests
 Tests the deterministic scope validation engine.
 Run: pytest tests/test_scope_guard.py -v
 """
-import pytest
-import sys, os
+import os
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.core.scope_guard import (
@@ -192,6 +192,23 @@ class TestScopeGuardian:
         guardian = ScopeGuardian(["example.com"], authorized_ips={"192.168.1.1"})
         result = guardian.validate("192.168.1.1")
         assert result.is_allowed
+
+    def test_stored_ip_scope_authorizes_exact_ip(self):
+        guardian = ScopeGuardian.from_scope_values(["203.0.113.10", "example.com"])
+        result = guardian.validate("203.0.113.10")
+        assert result.is_allowed
+        assert result.matched_rule == "203.0.113.10"
+
+    def test_stored_ip_scope_rejects_neighbor(self):
+        guardian = ScopeGuardian.from_scope_values(["203.0.113.10"])
+        result = guardian.validate("203.0.113.11")
+        assert not result.is_allowed
+        assert result.decision == ScopeDecision.DENIED
+
+    def test_hostname_rules_still_apply_beside_ip_scope(self):
+        guardian = ScopeGuardian.from_scope_values(["203.0.113.10", "*.example.com"])
+        assert guardian.validate("api.example.com").is_allowed
+        assert not guardian.validate("other.test").is_allowed
 
     def test_malformed_input_marked_invalid(self):
         guardian = ScopeGuardian(["example.com"])

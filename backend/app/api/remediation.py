@@ -5,9 +5,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_owned_finding, require_owned_project
+from app.api.deps import get_current_user, require_owned_finding, require_owned_project, require_writer
 from app.database.session import get_db
 from app.models import RemediationSuggestion, SecurityFinding, RemediationStatus, User
+from app.core.enums import require_enum
 from app.schemas import RemediationResponse, RemediationStatusUpdate
 
 router = APIRouter()
@@ -33,7 +34,7 @@ def update_remediation_status(
     remediation_id: str,
     payload: RemediationStatusUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_writer),
 ):
     """Update the status of a remediation suggestion in an owned project."""
     suggestion = db.query(RemediationSuggestion).filter(
@@ -46,11 +47,7 @@ def update_remediation_status(
         raise HTTPException(status_code=404, detail="Finding not found")
     require_owned_project(finding.project_id, db, current_user)
 
-    valid_statuses = {s.value for s in RemediationStatus}
-    if payload.status not in valid_statuses:
-        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
-
-    suggestion.status = payload.status
+    suggestion.status = require_enum(RemediationStatus, payload.status)
     db.commit()
     db.refresh(suggestion)
     return suggestion

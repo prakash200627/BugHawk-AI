@@ -1,0 +1,55 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Pinned ProjectDiscovery releases. The API image does not install or run these binaries.
+ARG SUBFINDER_VERSION=2.17.0
+ARG HTTPX_VERSION=1.12.0
+ARG NUCLEI_VERSION=3.11.1
+ARG ZAP_VERSION=2.16.0
+ARG ZAP_SHA256=a0779509e702ec53d41074eaa0ce41f2a964a822aa5be0380255a482e2e7fe8d
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gcc \
+    libpq-dev \
+    openjdk-17-jre-headless \
+    unzip \
+    && curl -fsSL -o /tmp/subfinder.zip \
+        "https://github.com/projectdiscovery/subfinder/releases/download/v${SUBFINDER_VERSION}/subfinder_${SUBFINDER_VERSION}_linux_amd64.zip" \
+    && unzip -o /tmp/subfinder.zip -d /usr/local/bin \
+    && chmod 755 /usr/local/bin/subfinder \
+    && curl -fsSL -o /tmp/httpx.zip \
+        "https://github.com/projectdiscovery/httpx/releases/download/v${HTTPX_VERSION}/httpx_${HTTPX_VERSION}_linux_amd64.zip" \
+    && unzip -o /tmp/httpx.zip -d /usr/local/bin \
+    && chmod 755 /usr/local/bin/httpx \
+    && curl -fsSL -o /tmp/nuclei.zip \
+        "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" \
+    && unzip -o /tmp/nuclei.zip -d /usr/local/bin \
+    && chmod 755 /usr/local/bin/nuclei \
+    && curl -fsSL -o /tmp/zap.tar.gz \
+        "https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_${ZAP_VERSION}_Linux.tar.gz" \
+    && echo "${ZAP_SHA256}  /tmp/zap.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/zap.tar.gz -C /opt \
+    && chmod 755 /opt/ZAP_${ZAP_VERSION}/zap.sh \
+    && rm -rf /tmp/subfinder.zip /tmp/httpx.zip /tmp/nuclei.zip /tmp/zap.tar.gz /var/lib/apt/lists/*
+
+# Production runtime, plus the pinned Semgrep program. Model libraries are not installed.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir semgrep==1.186.0
+
+COPY . .
+
+RUN useradd -m -u 1000 bughawk \
+    && chown -R bughawk:bughawk /app "/opt/ZAP_${ZAP_VERSION}"
+USER bughawk
+ENV HOME=/home/bughawk
+
+ENV SUBFINDER_PATH=/usr/local/bin/subfinder
+ENV HTTPX_PATH=/usr/local/bin/httpx
+ENV NUCLEI_PATH=/usr/local/bin/nuclei
+ENV SEMGREP_PATH=/usr/local/bin/semgrep
+ENV ZAP_PATH=/opt/ZAP_2.16.0/zap.sh
+
+CMD ["python", "-m", "app.workers.scan_worker"]

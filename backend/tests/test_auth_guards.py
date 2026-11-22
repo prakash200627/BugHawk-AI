@@ -22,6 +22,19 @@ def client():
     app.dependency_overrides.clear()
 
 
+def test_login_validation_does_not_echo_password(client):
+    secret = "Phase2DummyPassword"
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "not-an-email", "password": secret},
+    )
+    assert response.status_code == 422
+    assert secret not in response.text
+    body = response.json()
+    assert "body" not in body
+    assert body["detail"][0]["loc"]
+
+
 def test_project_list_requires_authentication(client):
     response = client.get("/api/projects")
     assert response.status_code == 401

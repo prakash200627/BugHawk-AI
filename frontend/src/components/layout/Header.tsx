@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LogOut, RefreshCw } from 'lucide-react';
-import { healthApi, projectsApi } from '../../lib/api';
+import { apiErrorMessage, healthApi, projectsApi } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import type { HealthResponse } from '../../types';
 
@@ -12,16 +12,20 @@ interface HeaderProps {
 export default function Header({ title, subtitle }: HeaderProps) {
   const { user, projects, projectId, selectProject, refreshProjects, logout } = useSession();
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [healthState, setHealthState] = useState<'unknown' | 'online' | 'offline'>('unknown');
   const [checking, setChecking] = useState(false);
   const [projectName, setProjectName] = useState('');
+  const [projectError, setProjectError] = useState('');
 
   const checkHealth = async () => {
     setChecking(true);
     try {
       const res = await healthApi.check();
       setHealth(res.data);
+      setHealthState(res.data?.status === 'ok' ? 'online' : 'offline');
     } catch {
       setHealth(null);
+      setHealthState('offline');
     } finally {
       setChecking(false);
     }
@@ -59,9 +63,14 @@ export default function Header({ title, subtitle }: HeaderProps) {
           onSubmit={async (event) => {
             event.preventDefault();
             if (!projectName.trim()) return;
-            const created = await projectsApi.create({ name: projectName.trim() });
-            setProjectName('');
-            await refreshProjects(created.data.id);
+            setProjectError('');
+            try {
+              const created = await projectsApi.create({ name: projectName.trim() });
+              setProjectName('');
+              await refreshProjects(created.data.id);
+            } catch (err: unknown) {
+              setProjectError(apiErrorMessage(err, 'Project was not created.'));
+            }
           }}
         >
           <input
@@ -84,9 +93,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
             size={12}
             className={`text-slate-400 ${checking ? 'animate-spin' : ''}`}
           />
-          <span className={health ? 'text-cyber-green' : 'text-red-400'}>
-            {health ? 'API Online' : 'API Offline'}
+          <span className={healthState === 'online' ? 'text-cyber-green' : healthState === 'offline' ? 'text-red-400' : 'text-slate-400'}>
+            {healthState === 'online' ? 'API Online' : healthState === 'offline' ? 'API Offline' : 'Checking API'}
           </span>
+          {projectError && <span className="text-xs text-red-400 max-w-[180px] truncate" title={projectError}>{projectError}</span>}
         </button>
 
         <button

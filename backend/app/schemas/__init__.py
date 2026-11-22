@@ -6,7 +6,6 @@ Request/response schemas for all API endpoints.
 from datetime import datetime
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, EmailStr, Field, field_validator
-import enum
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +216,7 @@ class ScanResponse(BaseModel):
     error_message: Optional[str]
     is_demo: bool
     created_at: datetime
+    result_summary: Optional[dict] = None
 
     model_config = {"from_attributes": True}
 

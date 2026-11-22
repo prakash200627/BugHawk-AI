@@ -1,0 +1,23 @@
+id: bughawk-missing-content-type-options
+
+info:
+  name: X-Content-Type-Options header is absent
+  author: bughawk
+  severity: info
+  description: A reviewed header check. The response did not include X-Content-Type-Options. This is an observation, not a confirmed vulnerability.
+  tags: misconfig,headers
+  metadata:
+    max-request: 1
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    redirects: false
+    max-redirects: 0
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "x-content-type-options"
+        negative: true

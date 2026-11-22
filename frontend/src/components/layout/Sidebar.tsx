@@ -68,7 +68,7 @@ export default function Sidebar() {
       {!collapsed && (
         <div className="mx-3 mt-3 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 animate-fade-in">
           <AlertTriangle size={12} className="text-purple-400 flex-shrink-0" />
-          <span className="text-xs text-purple-400 font-medium">Demo Mode Active</span>
+          <span className="text-xs text-purple-400 font-medium">Illustrations are labeled on their pages</span>
         </div>
       )}
 
@@ -126,9 +126,12 @@ export default function Sidebar() {
         <div className="px-4 py-3 border-t border-cyber-blue/10 animate-fade-in">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <div className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
-            <span>Signed in</span>
+            <span>{user?.role === 'viewer' ? 'Signed in · read-only' : 'Signed in'}</span>
           </div>
           <div className="text-xs text-slate-600 mt-1 truncate">{user?.email || 'Account'}</div>
+          {user?.role && user.role !== 'viewer' && (
+            <div className="text-xs text-slate-600 mt-1 capitalize">{user.role}</div>
+          )}
         </div>
       )}
 

@@ -1,0 +1,23 @@
+id: bughawk-missing-frame-options
+
+info:
+  name: X-Frame-Options header is absent
+  author: bughawk
+  severity: low
+  description: A reviewed header check. The response did not include X-Frame-Options. This is a potential issue, not a confirmed vulnerability.
+  tags: misconfig,headers
+  metadata:
+    max-request: 1
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    redirects: false
+    max-redirects: 0
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "x-frame-options"
+        negative: true

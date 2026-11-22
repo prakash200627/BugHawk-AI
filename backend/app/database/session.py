@@ -3,7 +3,6 @@ BugHawk AI 2.0 — Database Session Management
 """
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from typing import Generator
 from app.config import settings
 

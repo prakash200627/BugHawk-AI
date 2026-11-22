@@ -7,10 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
+from app.api import agents, assets, auth, findings, health, projects, remediation, reports, scans, scopes
 from app.config import settings
-from app.core.logging import configure_logging, get_logger
-from app.database.session import engine
-from app.database.base import Base
+from app.core.logging import configure_logging, get_logger, redact_connection_urls
 
 # Import all models so Alembic sees them
 import app.models  # noqa: F401
@@ -63,14 +62,25 @@ app.add_middleware(
 # Error handlers
 # ---------------------------------------------------------------------------
 
+def _public_validation_errors(exc: RequestValidationError) -> list:
+    """Field messages only. Drop values that may be passwords or tokens."""
+    public = []
+    for error in exc.errors():
+        public.append({
+            "type": error.get("type"),
+            "loc": error.get("loc"),
+            "msg": error.get("msg"),
+        })
+    return public
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": "Validation error",
-            "detail": exc.errors(),
-            "body": str(exc.body)[:200] if exc.body else None,
+            "detail": _public_validation_errors(exc),
         },
     )
 
@@ -79,7 +89,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def generic_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, HTTPException):
         raise exc
-    logger.error("Unhandled exception", exc_info=exc, path=str(request.url))
+    logger.error(
+        "Unhandled exception",
+        path=request.url.path,
+        error_type=type(exc).__name__,
+        detail=redact_connection_urls(str(exc)),
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"error": "Internal server error", "detail": "An unexpected error occurred."},
@@ -88,8 +103,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
-
-from app.api import auth, health, projects, scopes, assets, scans, findings, agents, reports, remediation
 
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

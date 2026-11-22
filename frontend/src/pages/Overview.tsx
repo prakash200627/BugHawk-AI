@@ -226,28 +226,24 @@ export default function OverviewPage() {
           value={stats?.total_assets ?? 0}
           icon={<Server size={20} />}
           color="blue"
-          demo
         />
         <StatCard
           label="Live Assets"
           value={stats?.live_assets ?? 0}
           icon={<CheckCircle size={20} />}
           color="green"
-          demo
         />
         <StatCard
           label="Total Findings"
           value={stats?.total_findings ?? 0}
           icon={<Bug size={20} />}
           color="orange"
-          demo
         />
         <StatCard
           label="Active Scans"
           value={stats?.active_scans ?? 0}
           icon={<Activity size={20} />}
           color="purple"
-          demo
         />
       </div>
 
@@ -259,28 +255,24 @@ export default function OverviewPage() {
           icon={<AlertTriangle size={20} />}
           color="red"
           critical={(stats?.critical_findings ?? 0) > 0}
-          demo
         />
         <StatCard
           label="High"
           value={stats?.high_findings ?? 0}
           icon={<AlertTriangle size={20} />}
           color="orange"
-          demo
         />
         <StatCard
           label="Awaiting Review"
           value={stats?.findings_pending_review ?? 0}
           icon={<Eye size={20} />}
           color="yellow"
-          demo
         />
         <StatCard
           label="Potential Duplicates"
           value={stats?.potential_duplicates ?? 0}
           icon={<Shield size={20} />}
           color="slate"
-          demo
         />
       </div>
 
@@ -291,7 +283,7 @@ export default function OverviewPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-slate-200">Findings Over Time</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Demo project — November 2026</p>
+              <p className="text-xs text-slate-500 mt-0.5">Illustration. This chart is not loaded from the selected project.</p>
             </div>
             <TrendingUp size={16} className="text-cyber-blue" />
           </div>
@@ -416,14 +408,8 @@ export default function OverviewPage() {
               <div className="p-8 text-center">
                 <Bug size={24} className="text-slate-600 mx-auto mb-2" />
                 <p className="text-sm text-slate-500">
-                  {error ? 'Start backend and seed demo data to see findings.' : 'No findings yet.'}
+                  {error ? 'Findings could not be loaded.' : 'No findings are stored for this project.'}
                 </p>
-                {error && (
-                  <div className="mt-3 text-xs text-slate-600 font-mono bg-navy-900 rounded p-2 text-left max-w-sm mx-auto">
-                    cd backend<br />
-                    python seed_demo.py
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -435,7 +421,7 @@ export default function OverviewPage() {
             <h3 className="text-sm font-semibold text-slate-200">Agent Activity</h3>
             <div className="demo-banner !text-xs">
               <FlaskConical size={10} />
-              Demo
+              Illustration
             </div>
           </div>
           <div className="p-4 space-y-3">

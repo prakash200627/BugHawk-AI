@@ -14,6 +14,15 @@ import clsx from 'clsx';
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'info', 'unknown'];
 
+function classificationText(finding: SecurityFinding): string | null {
+  const value = finding.evidence?.classification;
+  if (value === 'informational') return 'Informational observation';
+  if (value === 'potential') return 'Potential issue, not confirmed';
+  if (value === 'static-source') return 'Static source finding, not confirmed';
+  if (finding.evidence?.source_kind === 'web-baseline') return 'Passive baseline, not confirmed';
+  return null;
+}
+
 function SeverityBadge({ sev }: { sev: string }) {
   const cls: Record<string, string> = {
     critical: 'badge-critical',
@@ -79,6 +88,9 @@ function FindingDrawer({ finding, onClose }: { finding: SecurityFinding; onClose
                 )}
               </div>
               <h2 className="text-base font-bold text-slate-100">{finding.title}</h2>
+              {classificationText(finding) && (
+                <p className="text-xs text-slate-400 mt-1">{classificationText(finding)}. Validation stays pending until a person reviews it.</p>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -204,8 +216,8 @@ function FindingDrawer({ finding, onClose }: { finding: SecurityFinding; onClose
           {finding.ai_explanation && (
             <div>
               <h4 className="text-xs text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                AI Analysis
-                <span className="badge badge-demo">AI</span>
+                Stored analyst text
+                <span className="badge badge-demo">Stored</span>
               </h4>
               <p className="text-sm text-slate-300 leading-relaxed bg-cyber-blue/5 border border-cyber-blue/15 rounded-lg p-3">
                 {finding.ai_explanation}
@@ -239,7 +251,8 @@ export default function FindingsPage() {
       const res = await findingsApi.list(projectId, params);
       setFindings(res.data);
     } catch {
-      setError('Could not load findings. Ensure backend is running and demo data is seeded.');
+      setFindings([]);
+      setError('Could not load findings.');
     } finally {
       setLoading(false);
     }
@@ -263,7 +276,7 @@ export default function FindingsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="demo-banner">
           <FlaskConical size={12} />
-          <span>Vulnerability Intelligence — Demo Project findings</span>
+          <span>Findings stored for the selected project. Static Semgrep results and passive ZAP results stay unconfirmed. Nuclei info results are observations.</span>
         </div>
         {error && (
           <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg">
@@ -342,8 +355,8 @@ export default function FindingsPage() {
         ) : findings.length === 0 ? (
           <div className="p-12 text-center">
             <Bug size={32} className="text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 text-sm mb-1">No findings match your filters</p>
-            <p className="text-slate-600 text-xs">Try adjusting your severity or status filters</p>
+            <p className="text-slate-400 text-sm mb-1">{error ? 'Findings could not be loaded' : 'No findings match your filters'}</p>
+            <p className="text-slate-600 text-xs">{error ? 'The list stays empty until the request succeeds.' : 'Try another severity or status, or import findings for this project.'}</p>
           </div>
         ) : (
           <table className="data-table">
@@ -377,6 +390,9 @@ export default function FindingsPage() {
                         )}
                         <span className="text-slate-200 text-xs font-medium line-clamp-1">{f.title}</span>
                       </div>
+                      {classificationText(f) && (
+                        <div className="text-xs text-slate-400 mt-0.5">{classificationText(f)}</div>
+                      )}
                       <div className="text-slate-500 text-xs mt-0.5 font-mono truncate">
                         {f.endpoint ? f.endpoint.substring(0, 50) : f.cwe_id || '—'}
                       </div>

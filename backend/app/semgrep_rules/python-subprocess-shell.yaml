@@ -1,0 +1,6 @@
+rules:
+  - id: bughawk-python-subprocess-shell
+    languages: [python]
+    severity: ERROR
+    message: subprocess was called with shell=True. This is a potential static finding, not a confirmed vulnerability.
+    pattern: subprocess.$FUNC(..., shell=True, ...)
