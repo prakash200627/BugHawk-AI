@@ -4,7 +4,6 @@ Uses structlog for JSON-formatted, context-aware log output.
 """
 import logging
 import re
-import sys
 import structlog
 from app.config import settings
 
@@ -47,14 +46,13 @@ def configure_logging() -> None:
             logging.DEBUG if settings.app_debug else logging.INFO
         ),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(sys.stdout),
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
 
     # Also configure stdlib logging
     logging.basicConfig(
         format="%(message)s",
-        stream=sys.stdout,
         level=logging.DEBUG if settings.app_debug else logging.INFO,
     )
 
