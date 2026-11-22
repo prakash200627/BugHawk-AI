@@ -436,7 +436,7 @@ def test_worker_claims_nuclei_and_recovers_a_stale_job():
     database.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = [
         nuclei_job, semgrep,
     ]
-    database.query.return_value.filter.return_value.update.side_effect = [1, 0]
+    database.query.return_value.filter.return_value.update.side_effect = [1, 0, 0]
     first = claim_supported_job(database)
     second = claim_supported_job(database)
     assert first.id == "scan-nuclei"

@@ -349,7 +349,7 @@ def test_claim_is_exclusive_and_unsupported_jobs_fail():
     database = MagicMock()
     database.query.return_value.filter.return_value.all.return_value = []
     database.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = [zap_job, other]
-    database.query.return_value.filter.return_value.update.side_effect = [1, 0]
+    database.query.return_value.filter.return_value.update.side_effect = [1, 0, 0]
     first = claim_supported_job(database)
     second = claim_supported_job(database)
     assert first.id == "scan-zap"

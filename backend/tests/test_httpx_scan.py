@@ -358,7 +358,7 @@ def test_httpx_claim_skips_unsupported_modules_and_is_exclusive():
     database.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = [
         httpx_job, nuclei,
     ]
-    database.query.return_value.filter.return_value.update.side_effect = [1, 0]
+    database.query.return_value.filter.return_value.update.side_effect = [1, 0, 0]
     first = claim_supported_job(database)
     second = claim_supported_job(database)
     assert first.id == "scan-httpx"

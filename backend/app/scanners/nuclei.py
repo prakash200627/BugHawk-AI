@@ -105,7 +105,7 @@ def resolve_nuclei_executable(configured: str | None = None) -> str:
         text = "nuclei"
     if len(text) > 512 or any(char in _UNSAFE_EXECUTABLE for char in text):
         raise NucleiConfigError("NUCLEI_PATH is not a single executable.")
-    if os.path.basename(text).lower() not in _EXECUTABLE_NAME:
+    if text.replace("\\", "/").rsplit("/", 1)[-1].lower() not in _EXECUTABLE_NAME:
         raise NucleiConfigError("NUCLEI_PATH must point at the nuclei program.")
     return text
 

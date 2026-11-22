@@ -4,7 +4,6 @@ The daemon binds to 127.0.0.1. This module does not call ZAP_API_URL.
 Active scan, spider, and fuzzer actions are not requested.
 """
 import json
-import os
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -87,7 +86,7 @@ def resolve_zap_executable(configured: str | None = None) -> str:
         text = "zap.sh"
     if len(text) > 512 or any(char in _UNSAFE_EXECUTABLE for char in text):
         raise ZapConfigError("ZAP_PATH is not a single executable.")
-    if os.path.basename(text).lower() not in _EXECUTABLE_NAME:
+    if text.replace("\\", "/").rsplit("/", 1)[-1].lower() not in _EXECUTABLE_NAME:
         raise ZapConfigError("ZAP_PATH must point at zap.sh.")
     return text
 

@@ -2,7 +2,6 @@
 
 The domain is one argument. The command is never passed through a shell.
 """
-import os
 import re
 import subprocess
 import threading
@@ -48,7 +47,7 @@ def resolve_subfinder_executable(configured: str | None = None) -> str:
         text = "subfinder"
     if len(text) > 512 or any(char in _UNSAFE_EXECUTABLE for char in text):
         raise SubfinderConfigError("SUBFINDER_PATH is not a single executable.")
-    if os.path.basename(text).lower() not in _EXECUTABLE_NAME:
+    if text.replace("\\", "/").rsplit("/", 1)[-1].lower() not in _EXECUTABLE_NAME:
         raise SubfinderConfigError("SUBFINDER_PATH must point at the subfinder program.")
     return text
 
