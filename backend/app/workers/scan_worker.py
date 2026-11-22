@@ -40,7 +40,7 @@ from app.scanners.semgrep import (
     run_semgrep,
 )
 from app.scanners.subfinder import SubfinderOutcome, is_safe_domain, run_subfinder
-from app.scanners.zap import ZapAlert, ZapOutcome, run_zap
+from app.scanners.zap import ZapOutcome, run_zap
 
 logger = get_logger("scan_worker")
 Runner = Callable[[str], SubfinderOutcome]

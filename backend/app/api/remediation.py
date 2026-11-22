@@ -5,7 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_owned_finding, require_writer
+from app.api.deps import get_current_user, require_owned_finding, require_owned_project, require_writer
 from app.database.session import get_db
 from app.models import RemediationSuggestion, SecurityFinding, RemediationStatus, User
 from app.core.enums import require_enum

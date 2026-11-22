@@ -4,7 +4,8 @@ BugHawk AI 2.0 — Scope Guardian Tests
 Tests the deterministic scope validation engine.
 Run: pytest tests/test_scope_guard.py -v
 """
-import sys, os
+import os
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.core.scope_guard import (

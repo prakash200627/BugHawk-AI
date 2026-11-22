@@ -177,11 +177,11 @@ code, pre, .font-mono {
   /* Sidebar nav item */
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200;
-    @apply text-slate-400 hover:text-slate-200 hover:bg-cyber-blue/8;
+    @apply text-slate-400 hover:text-slate-200 hover:bg-cyber-blue/10;
     cursor: pointer;
   }
   .nav-item.active {
-    @apply text-cyber-blue-bright bg-cyber-blue/12 border border-cyber-blue/20;
+    @apply text-cyber-blue-bright bg-cyber-blue/10 border border-cyber-blue/20;
     box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.05);
   }
   .nav-item.active svg {
@@ -201,7 +201,7 @@ code, pre, .font-mono {
 
   /* Section divider */
   .section-divider {
-    @apply border-t border-cyber-blue/8 my-6;
+    @apply border-t border-cyber-blue/10 my-6;
   }
 
   /* Demo banner */
