@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gcc \
     libpq-dev \
-    openjdk-17-jre-headless \
+    openjdk-21-jre-headless \
     unzip \
     && curl -fsSL -o /tmp/subfinder.zip \
         "https://github.com/projectdiscovery/subfinder/releases/download/v${SUBFINDER_VERSION}/subfinder_${SUBFINDER_VERSION}_linux_amd64.zip" \
